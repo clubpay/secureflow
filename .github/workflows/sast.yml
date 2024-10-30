@@ -1,0 +1,33 @@
+name: Semgrep Scan
+
+on:
+  workflow_dispatch:  # This allows manual trigger
+  workflow_call:  # Allows this workflow to be reusable by other repositories
+
+jobs:
+  semgrep-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code from the repository
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Install Semgrep
+    - name: Install Semgrep
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        pip3 install semgrep
+
+    # Step 3: Run Semgrep scan on all files and output to a JSON file
+    - name: Run Semgrep scan
+      run: |
+        semgrep scan --metrics=off --severity=WARNING --severity=ERROR --exclude=*.yml --exclude=*.yaml --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
+
+    # Step 4: Upload the Semgrep report as an artifact
+    - name: Upload Semgrep report
+      uses: actions/upload-artifact@v4
+      with:
+        name: semgrep-report
+        path: semgrep-report.json
