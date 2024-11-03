@@ -3,15 +3,11 @@ name: SAST
 on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
-    inputs:
-      SAST_EXCLUDE_LIST:
-        description: 'List of files/directories to exclude before running Semgrep'
-        required: false
-        type: 'string'
-        default: 'sample test README.md'  # space separated values
+env:
+  SAST_EXCLUDE_LIST: 'README.md sample'
 
 jobs:
-  semgrep-scan:
+  sast:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +25,6 @@ jobs:
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       run: |
         ls -la
-        SAST_EXCLUDE_LIST="${{ github.event.inputs.SAST_EXCLUDE_LIST }}"
         echo $SAST_EXCLUDE_LIST
         for file in $SAST_EXCLUDE_LIST; do
           rm -rf $file
