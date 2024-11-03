@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
 env:
-  SAST_EXCLUDE_LIST: 'README.md sample'
+  SAST_EXCLUDE_LIST: 'README.md sample/function.go'
 
 jobs:
   sast:
@@ -24,12 +24,12 @@ jobs:
     # Step 3: Remove SAST_EXCLUDE_LIST
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       run: |
-        ls -la
+        ls -la sample
         echo $SAST_EXCLUDE_LIST
         for file in $SAST_EXCLUDE_LIST; do
           rm -rf $file
         done
-        ls -la
+        ls -la sample
     # Step 4: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep scan
       run: |
