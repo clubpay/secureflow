@@ -26,10 +26,8 @@ jobs:
     # Step 3: Remove SAST_EXCLUDE_LIST
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       run: |
-        echo ${{ inputs.sast_exclude_list }}
-        sast_exclude_list=${{ inputs.sast_exclude_list }}
-        for file in $sast_exclude_list; do
-          rm -rf $file
+        for item in ${{ inputs.sast_exclude_list }}; do
+          rm -rf $item
         done
     # Step 4: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep scan
