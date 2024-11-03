@@ -29,11 +29,10 @@ jobs:
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       run: |
         ls -la
-        SAST_EXCLUDE_LIST="${{ inputs.SAST_EXCLUDE_LIST }}"
+        SAST_EXCLUDE_LIST="${{ github.event.inputs.SAST_EXCLUDE_LIST }}"
         echo $SAST_EXCLUDE_LIST
-        IFS=' ' read -r -a files_array <<< "$SAST_EXCLUDE_LIST"
-        for file in "${files_array[@]}"; do
-          rm -rf "$file"
+        for file in $SAST_EXCLUDE_LIST; do
+          rm -rf $file
         done
         ls -la
     # Step 4: Run Semgrep scan on all files and output to a JSON file
