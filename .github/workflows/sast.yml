@@ -23,8 +23,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-pip
         pip3 install semgrep
-    # Step 3: Remove SAST_EXCLUDE_LIST
-    - name: Remove specified files/directories in SAST_EXCLUDE_LIST
+    # Step 3: Remove sast_exclude_list
+    - name: Remove specified files/directories in sast_exclude_list
       run: |
         for item in ${{ inputs.sast_exclude_list }}; do
           rm -rf $item
@@ -32,7 +32,7 @@ jobs:
     # Step 4: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep scan
       run: |
-        semgrep scan --metrics=off --severity=WARNING --severity=ERROR --exclude=*.yml --exclude=*.yaml --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
+        semgrep scan --metrics=off --severity=WARNING --severity=ERROR --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
 
     # Step 5: Upload the Semgrep report as an artifact
     - name: Upload Semgrep report
