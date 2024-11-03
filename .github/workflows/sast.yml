@@ -8,7 +8,7 @@ on:
         description: 'List of files/directories to exclude before running Semgrep'
         required: false
         type: 'string'
-        default: 'sample test README.md'  # Default value
+        default: 'sample test README.md'  # space separated values
 
 jobs:
   semgrep-scan:
@@ -28,11 +28,12 @@ jobs:
     # Step 3: Remove SAST_EXCLUDE_LIST
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       run: |
-        SAST_EXCLUDE_LIST="${{ inputs.SAST_EXCLUDE_LIST }}"
-        echo 'SAST_EXCLUDE_LIST'
         ls -la
-        for file in $SAST_EXCLUDE_LIST; do
-          rm -rf $file
+        SAST_EXCLUDE_LIST="${{ inputs.SAST_EXCLUDE_LIST }}"
+        echo $SAST_EXCLUDE_LIST
+        IFS=' ' read -r -a files_array <<< "$SAST_EXCLUDE_LIST"
+        for file in "${files_array[@]}"; do
+          rm -rf "$file"
         done
         ls -la
     # Step 4: Run Semgrep scan on all files and output to a JSON file
