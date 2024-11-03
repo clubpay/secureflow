@@ -5,10 +5,10 @@ on:
   workflow_call:  # Allows this workflow to be reusable by other repositories
     inputs:
       SAST_EXCLUDE_LIST:
-      description: 'List of files/directories to exclude before running Semgrep'
-      required: false
-      type: 'string'
-      default: 'sample test'  # Default value
+        description: 'List of files/directories to exclude before running Semgrep'
+        required: false
+        type: 'string'
+        default: 'sample test'  # Default value
 
 jobs:
   semgrep-scan:
