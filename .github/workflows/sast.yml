@@ -7,7 +7,7 @@ on:
       SAST_EXCLUDE_LIST:
       description: 'List of files/directories to exclude before running Semgrep'
       required: false
-      type: string
+      type: 'string'
       default: 'sample test'  # Default value
 
 jobs:
