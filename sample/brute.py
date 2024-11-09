@@ -6,6 +6,8 @@ import sys
 program = sys.argv[1]
 username = sys.argv[2]
 
+
+
 passwords = [
     '1',
     '12',
@@ -17,7 +19,10 @@ passwords = [
     '123123123',
 ]
 
+
+
 for password in passwords:
+    
     result = subprocess.run([program, username, password], stdout=subprocess.DEVNULL)
     if result.returncode == 0:
         print("cracked! user: {} password: {}".format(username, password))
