@@ -37,7 +37,7 @@ jobs:
     # Step 5: Upload the Semgrep report to DefectDojo
     - name: Upload Semgrep json report to Defectdojo
       run: |
-        curl -X 'POST' 'https://demo.defectdojo.org/api/v2/import-scan/' -H 'accept: application/json' -H 'Authorization: Token 548afd6fab3bea9794a41b31da0e9404f733e222' -H 'Content-Type: multipart/form-data' -F file=@semgrep-report.json -F 'product_type_name=awsomeproduct_type' -F 'active=true' -F 'verified=true' -F 'close_old_findings=true' -F 'engagement_name=myengagement' -F 'build_id=$GITHUB_RUN_ID' -F 'minimum_severity=Info' -F 'close_old_findings_product_scope=true' -F 'scan_date=2024-11-09' -F 'engagement_end_date=2024-11-09' -F 'commit_hash=$GITHUB_SHA' -F 'product_name=awsomeproduct' -F 'auto_create_context=true' -F 'scan_type=Semgrep JSON Report' -F 'branch_tag=$GITHUB_REF_NAME' -F 'source_code_management_uri=$GITHUB_REPOSITORY'
+        curl -X 'POST' 'https://demo.defectdojo.org/api/v2/import-scan/' -H 'accept: application/json' -H 'Authorization: Token 548afd6fab3bea9794a41b31da0e9404f733e222' -H 'Content-Type: multipart/form-data' -F file=@semgrep-report.json -F 'product_type_name=awsomeproduct_type' -F 'active=true' -F 'verified=true' -F 'close_old_findings=true' -F 'engagement_name=myengagement' -F 'build_id=$GITHUB_RUN_ID' -F 'minimum_severity=Info' -F 'close_old_findings_product_scope=true' -F 'scan_date=2024-11-09' -F 'engagement_end_date=2024-11-09' -F 'commit_hash=$GITHUB_SHA' -F 'product_name=awsomeproduct' -F 'auto_create_context=true' -F 'scan_type=Semgrep JSON Report' -F 'branch_tag=$GITHUB_REF_NAME' -F 'source_code_management_uri=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY'
         
     # Step 6: Upload the Semgrep report as an artifact
     - name: Upload Semgrep report
