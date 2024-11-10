@@ -32,7 +32,8 @@ jobs:
     # Step 4: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep scan
       run: |
-        semgrep scan --metrics=off --severity=WARNING --severity=ERROR --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
+        unzip core-edge-master.zip
+        semgrep scan --metrics=off --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
 
     # Step 5: Upload the Semgrep report as an artifact
     - name: Upload Semgrep report
