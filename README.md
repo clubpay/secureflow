@@ -84,11 +84,7 @@ The repository provides the following reusable workflows for automated security 
 
 ## How to Use the Workflows
 
-These workflows can be reused in your GitHub repositories to automate security scanning. Below is an example of how to integrate the **SAST Workflow** using [Semgrep](https://semgrep.dev).
-
-### Usage Example
-
-Each workflow can be easily integrated into your GitHub jobs by referencing its name and path in your repository. here is an example for SAST workflow:
+These workflows can be reused in your GitHub repositories to automate security scanning and you can easily integrate them into your GitHub jobs by referencing their name and path in your repository. Below is an example of how to integrate the **SAST Workflow**:
 
 ```yaml
 name: Trigger Semgrep Scan
