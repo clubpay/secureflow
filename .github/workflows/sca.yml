@@ -1,4 +1,4 @@
-name: Syft and Grype Scan
+name: sca
 
 on:
   workflow_dispatch:  # This allows manual trigger
