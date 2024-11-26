@@ -1,4 +1,4 @@
-name: iac
+name: iac_scanning
 
 on:
   workflow_dispatch:  # Allows manual trigger
