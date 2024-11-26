@@ -1,4 +1,4 @@
-name: iac_scanning
+name: iac
 
 on:
   workflow_dispatch:  # Allows manual trigger
@@ -28,14 +28,14 @@ jobs:
         make build
 
     # Step 4: run the scan
-    - name: Run KICS scan and print version
+    - name: Run KICS scan
       run: |
         ls
         cd ..
         ls
         ./kics/binkics scan -q /app/bin/assets/queries -p ${PWD} --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o ${PWD} --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
 
-    # Step 5: Upload the Gitleaks report as an artifact
+    # Step 5: Upload the KICS report as an artifact
     - name: Upload KICS report
       uses: actions/upload-artifact@v4
       with:
