@@ -1,4 +1,4 @@
-name: secrets
+name: iac
 
 on:
   workflow_dispatch:  # Allows manual trigger
