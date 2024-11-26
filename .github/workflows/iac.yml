@@ -16,7 +16,7 @@ jobs:
     # Step 2: run the scan
     - name: Run KICS scan
       run: |
-        docker run -t -v ${PWD}:/path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o ${PWD} --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
+        docker run -t -v ${PWD}:/path checkmarx/kics scan -p /path -o /path -v --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o ${PWD} --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
         ls
     # Step 3: Upload the KICS report as an artifact
     - name: Upload KICS report
