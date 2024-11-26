@@ -31,7 +31,7 @@ jobs:
     - name: Run KICS scan
       run: |
         ls
-        ./kics/bin/kics scan -q ./kics/assets/queries -p ${PWD} --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o ${PWD} --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
+        ./kics/bin/kics scan -q ./kics/assets/queries -p ${PWD} -s --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o ${PWD} --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
 
     # Step 5: Upload the KICS report as an artifact
     - name: Upload KICS report
