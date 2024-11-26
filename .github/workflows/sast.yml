@@ -9,7 +9,7 @@ on:
           type: string # space separated list of files/folders to exclude from scan
 
 jobs:
-  sast:
+  sast-scan:
     runs-on: ubuntu-latest
 
     steps:
