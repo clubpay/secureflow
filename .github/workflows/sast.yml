@@ -16,25 +16,19 @@ jobs:
     # Step 1: Checkout the code from the repository
     - name: Checkout repository
       uses: actions/checkout@v4
-
-    # Step 2: Install Semgrep
-    - name: Install Semgrep
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip
-        pip3 install semgrep
-    # Step 3: Remove sast_exclude_list
+      
+    # Step 2: Remove sast_exclude_list
     - name: Remove specified files/directories in sast_exclude_list
       run: |
         for item in ${{ inputs.sast_exclude_list }}; do
           rm -rf $item
         done
-    # Step 4: Run Semgrep scan on all files and output to a JSON file
+    # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep scan
       run: |
-        docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep scan --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=./src/semgrep-report.json
+        docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep scan --debug --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
         ls
-    # Step 5: Upload the Semgrep report to DefectDojo
+    # Step 4: Upload the Semgrep report to DefectDojo
     - name: Upload Semgrep json report to Defectdojo
       run: |
         TODAY=$(date +%Y-%m-%d)
