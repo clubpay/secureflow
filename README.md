@@ -7,7 +7,7 @@ This repository contains **reusable GitHub workflows** for automated security sc
 - **Infrastructure as Code (IaC) Scanning**  
 - **Secret Detection**  
 
-These workflows are designed to streamline security checks in your CI/CD pipelines and ensure code quality and security compliance.
+These workflows are designed to streamline security checks in your CI/CD pipelines. Remarkably, they complete scans in under a minute, providing swift and efficient protection for your codebase.
 
 ## Overview of Scanning Types
 
@@ -79,8 +79,8 @@ The repository provides the following reusable workflows for automated security 
 |---------------------|------------------------------------|------------------------|
 | `sast.yml`          | Static Application Security Testing (SAST) | [Semgrep](https://github.com/semgrep/semgrep) |
 | `sca.yml`           | Software Composition Analysis (SCA)       | [Grype](https://github.com/anchore/grype) |
-| `iac.yml`           | Infrastructure as Code (IaC) Scanning    | [KICS](https://github.com/Checkmarx/kics) |
-| `secrets.yml`       | Secret Detection                   | [Gitleaks](https://github.com/gitleaks/gitleaks) |
+| `iac-scanning.yml`           | Infrastructure as Code (IaC) Scanning    | [KICS](https://github.com/Checkmarx/kics) |
+| `secret-detection.yml`       | Secret Detection                   | [Gitleaks](https://github.com/gitleaks/gitleaks) |
 
 ## How to Use the Workflows
 

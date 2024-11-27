@@ -1,4 +1,4 @@
-name: sast
+name: Static Application Security Testing
 
 on:
   workflow_dispatch:  # This allows manual trigger
@@ -9,7 +9,7 @@ on:
           type: string # space separated list of files/folders to exclude from scan
 
 jobs:
-  sast-scan:
+  sast:
     runs-on: ubuntu-latest
 
     steps:
