@@ -7,7 +7,7 @@ This repository contains **reusable GitHub workflows** for automated security sc
 - **Infrastructure as Code (IaC) Scanning**  
 - **Secret Detection**  
 
-These workflows are designed to streamline security checks in your CI/CD pipelines and ensure security compliance. Remarkably, they complete scans in under a minute, providing swift and efficient protection for your codebase.
+These workflows are designed to streamline security checks in your CI/CD pipelines. Remarkably, they complete scans in under a minute, providing swift and efficient protection for your codebase.
 
 ## Overview of Scanning Types
 
