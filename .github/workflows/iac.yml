@@ -13,29 +13,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Install latest Go version
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 'stable'
-
-    # Step 3: Clone and build KICS from source
-    - name: Install KICS from source
-      run: |
-        git clone https://github.com/Checkmarx/kics.git
-        cd kics
-        go mod vendor
-        make build
-
-    # Step 4: run the scan
+    # Step 2: run the scan
     - name: Run KICS scan
       run: |
-        ls
-        cd ..
-        ls
-        ./kics/binkics scan -q /app/bin/assets/queries -p ${PWD} --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o ${PWD} --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
-
-    # Step 5: Upload the KICS report as an artifact
+        docker run -t -v "${PWD}":/path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o /path --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
+        
+    # Step 3: Upload the KICS report to DefectDojo
+    - name: Upload Semgrep json report to Defectdojo
+      run: |
+        TODAY=$(date +%Y-%m-%d)
+        product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+        curl -X "POST" "https://demo.defectdojo.org/api/v2/reimport-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@kics-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${product_name} (IaC_Scanning)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=KICS Scan" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+    
+    # Step 4: Upload the KICS report as an artifact
     - name: Upload KICS report
       uses: actions/upload-artifact@v4
       with:
