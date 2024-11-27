@@ -1,11 +1,11 @@
-name: iac
+name: Infrastructure as Code Scanning
 
 on:
   workflow_dispatch:  # Allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
 
 jobs:
-  iac-scan:
+  iac-scanning:
     runs-on: ubuntu-latest
 
     steps:
