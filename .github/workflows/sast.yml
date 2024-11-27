@@ -27,7 +27,6 @@ jobs:
     - name: Run Semgrep scan
       run: |
         docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep scan --debug --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
-        ls
     # Step 4: Upload the Semgrep report to DefectDojo
     - name: Upload Semgrep json report to Defectdojo
       run: |
@@ -35,7 +34,7 @@ jobs:
         product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
         curl -X "POST" "https://demo.defectdojo.org/api/v2/reimport-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${product_name} (SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=Semgrep JSON Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
         
-    # Step 6: Upload the Semgrep report as an artifact
+    # Step 5: Upload the Semgrep report as an artifact
     - name: Upload Semgrep report
       uses: actions/upload-artifact@v4
       with:
