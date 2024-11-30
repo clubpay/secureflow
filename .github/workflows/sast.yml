@@ -26,7 +26,7 @@ jobs:
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep scan
       run: |
-        unzip qlubkit-go-main.zip
+        unzip terraform-huaweicloud-cce-cluster-master.zip
         docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep scan --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --json-output=semgrep-report.json
     # Step 4: Upload the Semgrep report to DefectDojo
     - name: Upload Semgrep json report to Defectdojo
