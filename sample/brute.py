@@ -19,13 +19,6 @@ passwords = [
     '123123123',
 ]
 
-
-
-
-
-
-
-
 for password in passwords:
  
     result = subprocess.run([program, username, password], stdout=subprocess.DEVNULL)
