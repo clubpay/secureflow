@@ -51,7 +51,7 @@ jobs:
         echo "========"
         tsh ls
         echo "======="
-        tsh -i ${{ steps.auth.outputs.identity-file }} --auth teleport.qlub.cloud:443 apps ls
+        tsh apps ls
         echo "======="
         tsh -i ${{ steps.auth.outputs.identity-file }} apps login defectdojo
         echo "======="
