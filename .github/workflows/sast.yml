@@ -49,7 +49,7 @@ jobs:
       run: |
         ls ${{ steps.auth.outputs.identity-file }}
         echo "========"
-        tsh -i ${{ steps.auth.outputs.identity-file }} apps ls
+        tsh -i ${{ steps.auth.outputs.identity-file }} --auth-server teleport.qlub.cloud:443 apps ls
         echo "======="
         tsh -i ${{ steps.auth.outputs.identity-file }} apps login defectdojo
         echo "======="
