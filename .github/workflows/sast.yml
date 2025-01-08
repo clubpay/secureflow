@@ -49,7 +49,7 @@ jobs:
       run: |
         ls ${{ steps.auth.outputs.identity-file }}
         echo "========"
-        tsh -i ${{ steps.auth.outputs.identity-file }} apps login
+        tsh -i ${{ steps.auth.outputs.identity-file }} apps login defectdojo
         echo "======="
         tsh apps config
         echo "========"
