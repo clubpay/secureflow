@@ -47,9 +47,9 @@ jobs:
         anonymous-telemetry: 0
     - name: debug
       run: |
-        echo ${{ steps.auth.outputs.identity-file }}
+        ls ${{ steps.auth.outputs.identity-file }}
         echo "========"
-        tsh apps config
+        tsh -i ${{ steps.auth.outputs.identity-file }} apps config
         echo "======="
     # - name: Upload Semgrep json report to Defectdojo
     #   run: |
