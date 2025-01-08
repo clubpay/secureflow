@@ -49,8 +49,10 @@ jobs:
       run: |
         ls ${{ steps.auth.outputs.identity-file }}
         echo "========"
-        tsh -i ${{ steps.auth.outputs.identity-file }} apps config
+        tsh -i ${{ steps.auth.outputs.identity-file }} apps login
         echo "======="
+        tsh apps config
+        echo "========"
     # - name: Upload Semgrep json report to Defectdojo
     #   run: |
     #     TODAY=$(date +%Y-%m-%d)
