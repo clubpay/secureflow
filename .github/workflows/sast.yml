@@ -10,6 +10,8 @@ on:
 
 jobs:
   sast:
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
 
     steps:
@@ -29,11 +31,25 @@ jobs:
         docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --gitlab-sast --output=semgrep-report.json || EXIT_CODE=$?
         if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then exit $EXIT_CODE; fi
     # Step 4: Upload the Semgrep report to DefectDojo
+    - name: Fetch Teleport binaries
+      uses: teleport-actions/setup@v1
+      with:
+        version: 16.2.0
+    - name: Fetch credentials using Machine ID
+      id: auth
+      uses: teleport-actions/auth@v2
+      with:
+        proxy: teleport.qlub.cloud:443
+        token: defectdojo-github-action
+        # Enable the submission of anonymous usage telemetry. This
+        # helps us shape the future development of `tbot`. You can disable this
+        # by omitting this.
+        anonymous-telemetry: 0
     - name: Upload Semgrep json report to Defectdojo
       run: |
         TODAY=$(date +%Y-%m-%d)
         product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
-        curl -X "POST" "https://demo.defectdojo.org/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token 58a75d8d575e6fcaff065991608ffcfa8db58b4b" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        curl -X "POST" "https://defectdojo.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token 840540e6e870a65c893c8b8be28fb122ab2ffc97" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
         
     # Step 5: Upload the Semgrep report as an artifact
     - name: Upload Semgrep report
