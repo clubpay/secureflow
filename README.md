@@ -84,14 +84,28 @@ The repository provides the following reusable workflows for automated security 
 
 ## How to Use the Workflows
 
-These workflows can be reused in your GitHub repositories to automate security scanning and you can easily integrate them into your GitHub jobs by referencing their name and path in your repository. Below is an example of how to integrate the **SAST Workflow**:
+These workflows can be reused in your GitHub repositories to automate security scanning and you can easily integrate them into your GitHub jobs by referencing their name and path in your repository. Below is an example of how to integrate the **Secure Workflows**:
 
 ```yaml
-name: Trigger Semgrep Scan
+name: Trigger SecureFlow
 on:
-  workflow_dispatch:  # This will allow you to manually trigger the workflow
+  push:  # This will trigger the workflow on every push to the repository
 
 jobs:
   sast:
-    uses: clubpay/secureflow/.github/workflows/sast.yml@main
+    uses: clubpay/secureflow/.github/workflows/sast.yml@Authenticate_to_Teleport
+    secrets: inherit
+    
+  sca:
+    uses: clubpay/secureflow/.github/workflows/sca.yml@Authenticate_to_Teleport
+    secrets: inherit
+    
+  iac-scanning:
+    uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@Authenticate_to_Teleport
+    secrets: inherit
+    
+  secret-detection:
+    uses: clubpay/secureflow/.github/workflows/secret-detection.yml@Authenticate_to_Teleport
+    secrets: inherit
+
 ```
