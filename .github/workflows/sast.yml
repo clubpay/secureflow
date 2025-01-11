@@ -3,9 +3,6 @@ name: Static Application Security Testing
 on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
-      secrets:
-        DEFECTDOJO_TOKEN:
-          required: true
       inputs:
         sast_exclude_list:
           required: false
