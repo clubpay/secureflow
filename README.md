@@ -93,19 +93,19 @@ on:
 
 jobs:
   sast:
-    uses: clubpay/secureflow/.github/workflows/sast.yml@Authenticate_to_Teleport
+    uses: clubpay/secureflow/.github/workflows/sast.yml@main
     secrets: inherit
     
   sca:
-    uses: clubpay/secureflow/.github/workflows/sca.yml@Authenticate_to_Teleport
+    uses: clubpay/secureflow/.github/workflows/sca.yml@main
     secrets: inherit
     
   iac-scanning:
-    uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@Authenticate_to_Teleport
+    uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@main
     secrets: inherit
     
   secret-detection:
-    uses: clubpay/secureflow/.github/workflows/secret-detection.yml@Authenticate_to_Teleport
+    uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
     secrets: inherit
 
 ```
