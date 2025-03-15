@@ -24,7 +24,7 @@ jobs:
 # Step 3: Generate SBOM using Syft
     - name: Generate SBOM
       run: |
-        unzip marketing-landing-site-main.zip
+        unzip js-mail-server-v2-main.zip
         /usr/local/bin/syft version
         /usr/local/bin/syft . -v -o json > sbom.json
 
