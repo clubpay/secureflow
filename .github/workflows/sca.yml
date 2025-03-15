@@ -24,7 +24,7 @@ jobs:
 # Step 3: Generate SBOM using Syft
     - name: Generate SBOM
       run: |
-        unzip core-edge-master.zip
+        unzip ronykit-main.zip
         /usr/local/bin/syft version
         /usr/local/bin/syft . -v -o json > sbom.json
 
