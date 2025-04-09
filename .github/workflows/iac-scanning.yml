@@ -18,7 +18,7 @@ jobs:
     # Step 2: run the scan
     - name: Run KICS Scan
       run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo
-        unzip terraform-huaweicloud-cce-cluster-master.zip
+        unzip customer-web-app-main.zip
         docker run -t -v "${PWD}":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
     
     # Step 3: Fetching Binaries for Teleport
