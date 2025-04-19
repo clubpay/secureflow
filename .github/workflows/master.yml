@@ -19,7 +19,7 @@ jobs:
         run: echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
 
       - name: Trigger Infrastructure as Code Scanning
-        run: gh workflow run iac-scanning.yml --repo ${{ github.repository }} -ref manual_scan --field repository_url="${{ inputs.repository_url }}"
+        run: gh workflow run iac-scanning.yml --repo ${{ github.repository }} -r "manual_scan" --field repository_url="${{ inputs.repository_url }}"
 
       - name: Trigger Static Application Security Testing
         run: gh workflow run sast.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
