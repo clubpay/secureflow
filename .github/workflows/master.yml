@@ -22,10 +22,10 @@ jobs:
         run: gh workflow run iac-scanning.yml --repo ${{ github.repository }} -r "manual_scan" --field repository_url="${{ inputs.repository_url }}"
 
       - name: Trigger Static Application Security Testing
-        run: gh workflow run sast.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
+        run: gh workflow run sast.yml --repo ${{ github.repository }} -r "manual_scan" --field repository_url="${{ inputs.repository_url }}"
 
       - name: Trigger Software Composition Analysis
-        run: gh workflow run sca.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
+        run: gh workflow run sca.yml --repo ${{ github.repository }} -r "manual_scan" --field repository_url="${{ inputs.repository_url }}"
 
       - name: Trigger Secret Detection
-        run: gh workflow run secret-detection.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
+        run: gh workflow run secret-detection.yml --repo ${{ github.repository }} -r "manual_scan" --field repository_url="${{ inputs.repository_url }}"
