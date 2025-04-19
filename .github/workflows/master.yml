@@ -1,0 +1,31 @@
+name: Trigger All Security Scans
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository_url:
+        description: 'Git repository URL to clone'
+        required: true
+        type: string
+
+jobs:
+  trigger-workflows:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Using stored GitHub Actions secret
+
+    steps:
+      - name: Authenticate GH CLI
+        run: echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Trigger Infrastructure as Code Scanning
+        run: gh workflow run iac-scanning.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
+
+      - name: Trigger Static Application Security Testing
+        run: gh workflow run sast.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
+
+      - name: Trigger Software Composition Analysis
+        run: gh workflow run sca.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
+
+      - name: Trigger Secret Detection
+        run: gh workflow run secret-detection.yml --repo ${{ github.repository }} --field repository_url="${{ inputs.repository_url }}"
