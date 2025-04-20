@@ -21,7 +21,7 @@ jobs:
     # Step 2: Run Semgrep Scan
     - name: Run Semgrep Scan
       run: |
-        docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --gitlab-sast --output=semgrep-report.json || EXIT_CODE=$?
+        docker run --rm -v "${PWD}/repo:/src" semgrep/semgrep semgrep ci --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --gitlab-sast --output=semgrep-report.json || EXIT_CODE=$?
         if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then exit $EXIT_CODE; fi    
 
     # Step 3: Upload the Semgrep Report as an Artifact
