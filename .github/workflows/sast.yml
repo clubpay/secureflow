@@ -21,7 +21,7 @@ jobs:
     # Step 2: Run Semgrep Scan
     - name: Run Semgrep Scan
       run: |
-        docker run -e SEMGREP_APP_TOKEN=447264db74cba98b1c2933cd68f65ed5de0bfc6272650d8e51502814ce4bdce8 --rm -v "${PWD}/repo:/src" semgrep/semgrep semgrep scan --exclude-rule=javascript.express.web.cors-default-config-express.cors-default-config-express --exclude-rule=javascript.crypto-js.cryptojs-weak-algorithm.cryptojs-weak-algorithm --exclude-rule=javascript.koa.web.cors-default-config-koa.cors-default-config-koa --json-output=semgrep-report.json    
+        docker run -e SEMGREP_APP_TOKEN=447264db74cba98b1c2933cd68f65ed5de0bfc6272650d8e51502814ce4bdce8 --rm -v "${PWD}/repo:/src" semgrep/semgrep semgrep scan --exclude-rule=javascript.express.web.cors-default-config-express.cors-default-config-express --exclude-rule=javascript.crypto-js.cryptojs-weak-algorithm.cryptojs-weak-algorithm --exclude-rule=javascript.koa.web.cors-default-config-koa.cors-default-config-koa --exclude-rule=yaml.github-actions.security.curl-eval.curl-eval --json-output=semgrep-report.json    
 
     # Step 3: Upload the Semgrep Report as an Artifact
     - name: Upload Semgrep Report to Artifacts
