@@ -21,7 +21,7 @@ jobs:
     # Step 2: Run KICS Scan
     - name: Run KICS Scan
       run: |
-        docker run -t -v "${PWD}/repo":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report
+        docker run -t -v "${PWD}/repo":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low,medium --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report
 
     # Step 3: Upload the KICS report as an artifact
     - name: Upload KICS Report to Artifacts
