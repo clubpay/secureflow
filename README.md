@@ -8,7 +8,7 @@ This repository contains **reusable GitHub workflows** for automated security sc
 - **Secret Detection**  
 
 These workflows are designed to streamline security checks in your CI/CD pipelines. Remarkably, they complete scans in under a minute, providing swift and efficient protection for your codebase.
-![SecureFlow Arch](https://github.com/user-attachments/assets/062ad6e9-0f62-43a6-ab2d-e4139875fec0)
+![secureflow_arch_720](https://github.com/user-attachments/assets/3e6152c0-4463-4b03-bbf8-43cc8deea490)
 
 ## Overview of Scanning Types
 
