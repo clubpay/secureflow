@@ -18,8 +18,8 @@ jobs:
     # Step 1: Checkout the code from the repository
     - name: Checkout Repository
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GH_TOKEN || github.token }}
+      with: #if the repo is public and GLOBAL_REPO_TOKEN is not present, we use the default token generated in the Github action to prevent errors
+        token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
       
     # Step 2: Remove sast_exclude_list
     - name: Remove specified files/directories in sast_exclude_list
