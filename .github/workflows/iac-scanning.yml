@@ -19,9 +19,8 @@ jobs:
 
     # Step 2: run the scan
     - name: Run KICS Scan
-      run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo
-        docker run -t -v "${PWD}":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
-    
+      run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user
+        docker run --user $(id -u):$(id -g) -t -v "${PWD}":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
     # Step 3: Fetching Binaries for Teleport
     - name: Fetch Teleport Binaries
       uses: teleport-actions/setup@v1
