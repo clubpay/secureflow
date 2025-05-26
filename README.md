@@ -112,4 +112,4 @@ jobs:
 ```
 
 ## Note for Private Repositories
-For private repositories, it's essential to configure an action secret named **GH_TOKEN** with the appropriate permissions. Ensure that the token has both repository (repo) and workflow (workflow) access, allowing GitHub Actions to authenticate and execute workflows smoothly. Without this, attempts to access private repositories during checkout or workflow execution will fail due to insufficient authorization.
+For private repositories, it's essential to configure an action secret named **GLOBAL_REPO_TOKEN** with the appropriate permissions. Ensure that the token has both repository (repo) and workflow (workflow) access, allowing GitHub Actions to authenticate and execute workflows smoothly. Without this, attempts to access private repositories during checkout or workflow execution will fail due to insufficient authorization.
