@@ -11,9 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-# Step 1: Checkout the Code from the Repository
+    # Step 1: Checkout the code from the repository
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_TOKEN || github.token }}
 
 # Step 2: Install Syft and Grype
     - name: Install Syft and Grype
