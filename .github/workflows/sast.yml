@@ -11,7 +11,7 @@ on:
 jobs:
   sast:
     permissions:
-      id-token: write
+      id-token: none
     runs-on: ubuntu-latest
 
     steps:
