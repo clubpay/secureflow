@@ -90,31 +90,39 @@ These workflows can be reused in your GitHub repositories to automate security s
 ```yaml
 name: Trigger SecureFlow
 on:
-  push:  # This will trigger the workflow on every push to the repository
+  push: # This will trigger the workflow on every push to the repository
 
 jobs:
   sast:
     uses: clubpay/secureflow/.github/workflows/sast.yml@main
-    secrets: inherit
-    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
-      id-token: write
-    
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
+      id-token: write #This is essential for authentication to Teleport
+
   sca:
     uses: clubpay/secureflow/.github/workflows/sca.yml@main
-    secrets: inherit
-    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
       id-token: write
-    
+
   iac-scanning:
     uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@main
-    secrets: inherit
-    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
       id-token: write
-    
+
   secret-detection:
     uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
-    secrets: inherit
-    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
       id-token: write
 
 ```
