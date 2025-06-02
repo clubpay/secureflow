@@ -3,6 +3,9 @@ name: Software Composition Analysis
 on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
+    secrets:
+      GLOBAL_REPO_TOKEN:
+        required: false  
 
 jobs:
   sca:
