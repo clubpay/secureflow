@@ -1,0 +1,66 @@
+name: Software Composition Analysis
+
+on:
+  workflow_dispatch:  # This allows manual trigger
+  workflow_call:  # Allows this workflow to be reusable by other repositories
+
+jobs:
+  sca:
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code from the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with: #if the repo is public and GLOBAL_REPO_TOKEN is not present, we use the default token generated in the Github action to prevent errors
+        token: ${{ secrets.GLOBAL_REPO_TOKEN }}
+
+# Step 2: Install Syft and Grype
+    - name: Install Syft and Grype
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+# Step 3: Generate SBOM using Syft
+    - name: Generate SBOM
+      run: |
+        /usr/local/bin/syft version
+        /usr/local/bin/syft . -v -o json > sbom.json
+
+ # Step 4: Scan SBOM Using Grype
+    - name: Scan SBOM with Grype
+      run: |
+        /usr/local/bin/grype version
+        /usr/local/bin/grype sbom:sbom.json -v -o json > grype-report.json
+        
+  # Step 5: Fetching Binaries for Teleport
+    - name: Fetch Teleport Binaries
+      uses: teleport-actions/setup@v1
+      with:
+        version: 16.2.0
+        
+  # Step 6: Fetching Credentials
+    - name: Fetch Credentials Using Machine ID
+      id: auth
+      uses: teleport-actions/auth-application@v2
+      with:
+        proxy: teleport.qlub.cloud:443
+        token: defectdojo-github-action
+        app: defectdojo
+        anonymous-telemetry: 0
+ 
+ # Step 7: Upload the Grype's report to DefectDojo
+    - name: Upload Grype Report to Defectdojo
+      run: |
+        TODAY=$(date +%Y-%m-%d)
+        product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+        curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@grype-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SCA)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=Anchore Grype" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+
+ # Step 8: Upload the Grype report as an artifact
+    - name: Upload Grype Report to Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: grype-report
+        path: grype-report.json
