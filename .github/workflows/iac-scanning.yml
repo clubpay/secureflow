@@ -3,6 +3,9 @@ name: Infrastructure as Code Scanning
 on:
   workflow_dispatch:  # Allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
+    secrets:
+       GLOBAL_REPO_TOKEN:
+        required: false
 
 jobs:
   iac-scanning:
