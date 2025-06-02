@@ -19,6 +19,16 @@ jobs:
         echo "Repository: ${{ github.repository }}"
         echo "Workflow path: ${{ github.workflow }}"
         echo "Job: ${{ github.job }}"
+
+    - name: Debug token presence
+      run: |
+        if [ -z "${{ secrets.GLOBAL_REPO_TOKEN }}" ]; then
+          echo "Token is NOT passed in!"
+          exit 1
+        else
+          echo "Token is present"
+        fi
+        
     
     # Step 1: Checkout the code from the repository
     - name: Checkout Caller Repo
