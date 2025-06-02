@@ -5,7 +5,9 @@ on:
   workflow_call:  # Allows this workflow to be reusable by other repositories
     secrets:
       GLOBAL_REPO_TOKEN:
-        required: false  
+        required: false
+      DEFECTDOJO_TOKEN:
+        required: true
 
 jobs:
   sca:
