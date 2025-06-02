@@ -96,18 +96,26 @@ jobs:
   sast:
     uses: clubpay/secureflow/.github/workflows/sast.yml@main
     secrets: inherit
+    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+      id-token: write
     
   sca:
     uses: clubpay/secureflow/.github/workflows/sca.yml@main
     secrets: inherit
+    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+      id-token: write
     
   iac-scanning:
     uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@main
     secrets: inherit
+    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+      id-token: write
     
   secret-detection:
     uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
     secrets: inherit
+    permissions: #This is essential for enabling the reuse of workflows across organizations beyond Clubpay
+      id-token: write
 
 ```
 
