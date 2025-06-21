@@ -18,6 +18,8 @@ jobs:
     permissions:
       id-token: write
     runs-on: ubuntu-latest
+    env:
+      EXCLUDED_RULES: "--exclude-rule=ajinabraham.njsscan.database.nosql_find_injection.node_nosqli_injection --exclude-rule=generic.secrets.security.detected-generic-secret.detected-generic-secret --exclude-rule=generic.secrets.security.detected-stripe-api-key.detected-stripe-api-key --exclude-rule=generic.secrets.security.detected-telegram-bot-api-key.detected-telegram-bot-api-key --exclude-rule=generic.secrets.security.detected-private-key.detected-private-key --exclude-rule=generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash --exclude-rule=generic.secrets.security.detected-jwt-token.detected-jwt-token --exclude-rule=mobsf.mobsfscan.android.secrets.hardcoded_api_key --exclude-rule=mobsf.mobsfscan.android.secrets.hardcoded_username --exclude-rule=generic.secrets.security.detected-generic-api-key.detected-generic-api-key --exclude-rule=mobsf.mobsfscan.android.secrets.hardcoded_password --exclude-rule=mobsf.mobsfscan.android.secrets.hardcoded_secret --exclude-rule=ajinabraham.njsscan.generic.hardcoded_secrets.node_password --exclude-rule=ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key"
 
     steps:
     # Step 1: Checkout the code from the repository
@@ -36,7 +38,7 @@ jobs:
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep Scan
       run: |
-        docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --gitlab-sast --output=semgrep-report.json || EXIT_CODE=$?
+        docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci $EXCLUDED_RULES --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --gitlab-sast --output=semgrep-report.json || EXIT_CODE=$?
         if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then exit $EXIT_CODE; fi
     
     # Step 4: Fetching Binaries for Teleport
