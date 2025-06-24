@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
       inputs:
-        sast_exclude_list:
+        SAST_EXCLUDE_LIST:
           required: false
           type: string # space separated list of files/folders to exclude from scan
       secrets:
@@ -29,9 +29,9 @@ jobs:
         token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
       
     # Step 2: Remove sast_exclude_list
-    - name: Remove specified files/directories in sast_exclude_list
+    - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       run: |
-        for item in ${{ inputs.sast_exclude_list }}; do
+        for item in ${{ inputs.SAST_EXCLUDE_LIST }}; do
           rm -rf $item
         done
         
