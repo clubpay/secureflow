@@ -128,7 +128,7 @@ jobs:
 ```
 ## Skipping Files or Lines from Scanning
 
-You can skip certain files, folders, or lines from being scanned by the DevSecOps framework.
+You can skip certain files, folders, or lines from being scanned by SecureFlow.
 
 ### 1. Skip Specific Lines
 
