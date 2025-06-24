@@ -133,7 +133,7 @@ You can skip certain files, folders, or lines from being scanned by the DevSecOp
 ### 1. Skip Specific Lines
 
 If you want to ignore specific lines of code, you can add in-line comments at the end of the target line of code. Use **nosemgrep** comment to skip SAST scans, and **gitleaks:allow** comment to skip secret detection.
-
+Skipping SAST Scans:
 ```code
 bad_func1()  #nosemgrep
 
@@ -143,6 +143,7 @@ bad_func3(   //nosemgrep
     arg
 );
 ```
+Skipping Secrets (Example 1):
 ```code
 package main
 import "fmt"
@@ -152,6 +153,7 @@ func main() {
     fmt.Println("API Key:", apiKey)
 }
 ```
+Skipping Secrets (Example 2):
 ```code
 DB_PASSWORD = "TestDBPassword"  #gitleaks:allow
 
@@ -162,7 +164,7 @@ my_function()
 ```
 ### 1. Skip Files and Directories
 
-You can exclude specific directories or files from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables. These variables accept a space-separated list of file and directory names that should be ignored during scanning. To apply these exclusions, reuse the workflows by providing these variables.
+You can exclude specific directories or files from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables. These variables accept a space-separated list of file and directory names that should be ignored during scanning. To apply these exclusions, you can reuse the workflows **with** these variables.
 ```yaml
 jobs:
   sast:
@@ -173,7 +175,7 @@ jobs:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
     permissions:
-      id-token: write #This is essential for authentication to Teleport
+      id-token: write
 
   secret-detection:
     uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
