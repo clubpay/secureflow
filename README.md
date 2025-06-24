@@ -130,19 +130,42 @@ jobs:
 
 You can skip certain files, folders, or lines from being scanned by SecureFlow.
 
+Important Considerations:
+
+- Documentation: Always add a comment explaining why you're suppressing the rule. This helps other developers understand your decision and avoids accidentally re-introducing the vulnerability.
+- Review: Regularly review your skipped codes to ensure they still need to be skipped. Security landscapes change, and previously acceptable suppressions might become risky.
+- Alternative: If possible, prefer fixing the underlying vulnerability rather than excluding the code. Skipping should be a last resort.
+
+
 ### 1. Skip Specific Lines
 
 If you want to ignore specific lines of code, you can add in-line comments at the end of the target line of code. Use **nosemgrep** comment to skip SAST scans, and **gitleaks:allow** comment to skip secret detection.
 
-Skipping SAST Scans (Example):
-```code
-bad_func1()  #nosemgrep
+Skipping SAST Scans (Example 1):
+```python
+import os
 
-bad_func2(); //nosemgrep
+def get_user_input():
+  user_input = input("Enter something: ") #nosemgrep
+  print(f"You entered: {user_input}")
+  return user_input
 
-bad_func3(   //nosemgrep
-    arg
-);
+if __name__ == "__main__":
+  get_user_input()
+```
+Skipping SAST Scans (Example 2):
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    command := os.Getenv("MY_COMMAND") //nosemgrep
+    fmt.Println("Executing:", command)
+}
 ```
 Skipping Secrets (Example 1):
 ```go
