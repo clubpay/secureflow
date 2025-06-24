@@ -133,7 +133,8 @@ You can skip certain files, folders, or lines from being scanned by SecureFlow.
 ### 1. Skip Specific Lines
 
 If you want to ignore specific lines of code, you can add in-line comments at the end of the target line of code. Use **nosemgrep** comment to skip SAST scans, and **gitleaks:allow** comment to skip secret detection.
-Skipping SAST Scans:
+
+Skipping SAST Scans (Example):
 ```code
 bad_func1()  #nosemgrep
 
@@ -144,7 +145,7 @@ bad_func3(   //nosemgrep
 );
 ```
 Skipping Secrets (Example 1):
-```code
+```go
 package main
 import "fmt"
 
@@ -154,7 +155,7 @@ func main() {
 }
 ```
 Skipping Secrets (Example 2):
-```code
+```python
 DB_PASSWORD = "TestDBPassword"  #gitleaks:allow
 
 def my_function():
