@@ -126,6 +126,64 @@ jobs:
       id-token: write
 
 ```
+## Skipping Files or Lines from Scanning
 
+You can skip certain files, folders, or lines from being scanned by the DevSecOps framework.
+
+### 1. Skip Specific Lines
+
+If you want to ignore specific lines of code, you can add in-line comments at the end of the target line of code. Use **nosemgrep** comment to skip SAST scans, and **gitleaks:allow** comment to skip secret detection.
+
+```code
+bad_func1()  #nosemgrep
+
+bad_func2(); //nosemgrep
+
+bad_func3(   //nosemgrep
+    arg
+);
+```
+```code
+package main
+import "fmt"
+
+func main() {
+    apiKey := "THIS_IS_A_SAMPLE_API_KEY" //gitleaks:allow 
+    fmt.Println("API Key:", apiKey)
+}
+```
+```code
+DB_PASSWORD = "TestDBPassword"  #gitleaks:allow
+
+def my_function():
+#sample funcion to read from DB
+
+my_function()
+```
+### 1. Skip Files and Directories
+
+You can exclude specific directories or files from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables. These variables accept a space-separated list of file and directory names that should be ignored during scanning. To apply these exclusions, reuse the workflows by providing these variables.
+```yaml
+jobs:
+  sast:
+    uses: clubpay/secureflow/.github/workflows/sast.yml@main
+    with:
+      SAST_EXCLUDE_LIST: "services/community/certs/server.key README.md MyAwsomeDirectory staging.env"
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
+      id-token: write #This is essential for authentication to Teleport
+
+  secret-detection:
+    uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
+    with:
+      SECRET_DETECTION_EXCLUDE_LIST: "services/community/community.go mock.go README.md MyAwsomeDirectory"
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
+      id-token: write
+```
 ## Note for Private Repositories
 For private repositories, it's essential to configure an action secret named **GLOBAL_REPO_TOKEN** with the appropriate permissions. Ensure that the token has both repository (repo) and workflow (workflow) access, allowing GitHub Actions to authenticate and execute workflows smoothly. Without this, attempts to access private repositories during checkout or workflow execution will fail due to insufficient authorization.
