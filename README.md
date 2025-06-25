@@ -204,7 +204,7 @@ jobs:
   secret-detection:
     uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
     with:
-      SECRET_DETECTION_EXCLUDE_LIST: "services/community/community.go mock.go README.md MyAwsomeDirectory"
+      SECRET_DETECTION_EXCLUDE_LIST: "services/community.go mock.go README.md AwsomeDirectory"
     secrets:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
