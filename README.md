@@ -126,6 +126,90 @@ jobs:
       id-token: write
 
 ```
+## Skipping Files or Lines from Scanning
 
+You can skip certain files, folders, or lines from being scanned by SecureFlow.
+
+Important Considerations:
+
+- Documentation: Always add a note explaining why you're skipping the specific line of code. This helps other developers understand your decision and avoids accidentally re-introducing the vulnerability.
+- Review: Regularly review your skipped codes to ensure they still need to be skipped. Security landscapes change, and previously acceptable suppressions might become risky later.
+- Alternative: If possible, prefer fixing the underlying vulnerability rather than excluding the code. Skipping should be a last resort.
+
+
+### 1. Skip Specific Lines
+
+If you want to ignore specific lines of code, you can add in-line comments at the end of the target line of code. Use **nosemgrep** comment to skip SAST scans, and **gitleaks:allow** comment to skip secret detection.
+
+Skipping SAST Scans (Example 1):
+```python
+import os
+
+def get_user_input():
+  user_input = input("Enter something: ") #nosemgrep
+  print(f"You entered: {user_input}")
+  return user_input
+
+if __name__ == "__main__":
+  get_user_input()
+```
+Skipping SAST Scans (Example 2):
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+)
+
+func main() {
+    command := os.Getenv("MY_COMMAND") //nosemgrep
+    fmt.Println("Executing:", command)
+}
+```
+Skipping Secrets (Example 1):
+```go
+package main
+import "fmt"
+
+func main() {
+    apiKey := "THIS_IS_A_SAMPLE_API_KEY" //gitleaks:allow 
+    fmt.Println("API Key:", apiKey)
+}
+```
+Skipping Secrets (Example 2):
+```python
+DB_PASSWORD = "TestDBPassword"  #gitleaks:allow
+
+def my_function():
+#sample funcion to read from DB
+
+my_function()
+```
+### 2. Skip Files and Directories
+
+You can exclude specific directories or files from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables. These variables accept a space-separated list of file and directory names that should be ignored during scanning. To apply these exclusions, you can reuse the workflows **with** these variables.
+```yaml
+jobs:
+  sast:
+    uses: clubpay/secureflow/.github/workflows/sast.yml@main
+    with:
+      SAST_EXCLUDE_LIST: "community/certs/server.key README.md MyAwsomeDirectory stage.env"
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
+      id-token: write
+
+  secret-detection:
+    uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
+    with:
+      SECRET_DETECTION_EXCLUDE_LIST: "services/community.go mock.go README.md AwsomeDirectory"
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
+      id-token: write
+```
 ## Note for Private Repositories
 For private repositories, it's essential to configure an action secret named **GLOBAL_REPO_TOKEN** with the appropriate permissions. Ensure that the token has both repository (repo) and workflow (workflow) access, allowing GitHub Actions to authenticate and execute workflows smoothly. Without this, attempts to access private repositories during checkout or workflow execution will fail due to insufficient authorization.
