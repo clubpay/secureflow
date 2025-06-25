@@ -132,8 +132,8 @@ You can skip certain files, folders, or lines from being scanned by SecureFlow.
 
 Important Considerations:
 
-- Documentation: Always add a comment explaining why you're suppressing the rule. This helps other developers understand your decision and avoids accidentally re-introducing the vulnerability.
-- Review: Regularly review your skipped codes to ensure they still need to be skipped. Security landscapes change, and previously acceptable suppressions might become risky.
+- Documentation: Always add a note explaining why you're skipping the specific line of code. This helps other developers understand your decision and avoids accidentally re-introducing the vulnerability.
+- Review: Regularly review your skipped codes to ensure they still need to be skipped. Security landscapes change, and previously acceptable suppressions might become risky later.
 - Alternative: If possible, prefer fixing the underlying vulnerability rather than excluding the code. Skipping should be a last resort.
 
 
