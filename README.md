@@ -186,7 +186,7 @@ def my_function():
 
 my_function()
 ```
-### 1. Skip Files and Directories
+### 2. Skip Files and Directories
 
 You can exclude specific directories or files from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables. These variables accept a space-separated list of file and directory names that should be ignored during scanning. To apply these exclusions, you can reuse the workflows **with** these variables.
 ```yaml
