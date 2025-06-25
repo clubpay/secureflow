@@ -194,7 +194,7 @@ jobs:
   sast:
     uses: clubpay/secureflow/.github/workflows/sast.yml@main
     with:
-      SAST_EXCLUDE_LIST: "services/community/certs/server.key README.md MyAwsomeDirectory staging.env"
+      SAST_EXCLUDE_LIST: "community/certs/server.key README.md MyAwsomeDirectory stage.env"
     secrets:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
