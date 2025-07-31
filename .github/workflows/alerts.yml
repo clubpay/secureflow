@@ -43,33 +43,33 @@ jobs:
         critical=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -X "GET" \
-                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=0" \
+                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
         high=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -X "GET" \
-                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&product_type=2&limit=0" \
+                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&product_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
         echo "critical=$critical" >> $GITHUB_OUTPUT
         echo "high=$high" >> $GITHUB_OUTPUT
 
     # Step 4: Send Summary to Slack
-    - name: Send Message to Slack
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        critical: ${{ steps.get_findings.outputs.critical }}
-        high: ${{ steps.get_findings.outputs.high }}
-      run: |
-        message="*:rocket-animated: Weekly Update on SecureFlow Scans:*
+    # - name: Send Message to Slack
+    #   env:
+    #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #     critical: ${{ steps.get_findings.outputs.critical }}
+    #     high: ${{ steps.get_findings.outputs.high }}
+    #   run: |
+    #     message="*:rocket-animated: Weekly Update on SecureFlow Scans:*
 
 
-        :rotating-light-red: *Open Critical Findings*: $critical  
-        :warning: *Open High Findings*: $high
+    #     :rotating-light-red: *Open Critical Findings*: $critical  
+    #     :warning: *Open High Findings*: $high
 
 
-        :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide. It provides guidance to quickly resolve issues or appropriately skip test/stage code blocks using suppression comments or exclusion configurations."
+    #     :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide. It provides guidance to quickly resolve issues or appropriately skip test/stage code blocks using suppression comments or exclusion configurations."
 
-        payload=$(jq -n --arg text "$message" '{text: $text}')
-        curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.SLACK_WEBHOOK_URL }}"
+    #     payload=$(jq -n --arg text "$message" '{text: $text}')
+    #     curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.SLACK_WEBHOOK_URL }}"
