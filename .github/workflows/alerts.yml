@@ -34,12 +34,6 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y jq curl
         echo "Fetching findings..."
-        curl --cert ${{ steps.auth.outputs.certificate-file }} \
-                        --key ${{ steps.auth.outputs.key-file }} \
-                        -X "GET" \
-                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=0" \
-                        -H "accept: application/json" \
-                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}"
         critical=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -X "GET" \
@@ -58,7 +52,6 @@ jobs:
     # Step 4: Send Summary to Slack
     - name: Send Message to Slack
       env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         critical: ${{ steps.get_findings.outputs.critical }}
         high: ${{ steps.get_findings.outputs.high }}
       run: |
