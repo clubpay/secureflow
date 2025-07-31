@@ -33,8 +33,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y jq curl
         echo "Fetching findings..."
-        response=$(curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "GET" "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High,Critical&limit=10000" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}")
-        echo $response
+        response=$(curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "GET" "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High,Critical&test__engagement__product__prod_type=Clubpay&limit=10000" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}")
         critical=$(echo "$response" | jq '[.results[] | select(.severity == "Critical")] | length')
         high=$(echo "$response" | jq '[.results[] | select(.severity == "High")] | length')
         echo $critical
