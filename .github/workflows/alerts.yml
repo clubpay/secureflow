@@ -35,15 +35,18 @@ jobs:
         sudo apt-get update && sudo apt-get install -y jq curl
         echo "Fetching findings..."
 
-        response=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+        critical=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -X "GET" \
-                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High,Critical&product_type=2&limit=10000" \
+                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=0" \
                         -H "accept: application/json" \
-                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}")
-
-        critical=$(echo "$response" | jq '[.results[] | select(.severity == "Critical")] | length')
-        high=$(echo "$response" | jq '[.results[] | select(.severity == "High")] | length')
+                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
+        high=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                        --key ${{ steps.auth.outputs.key-file }} \
+                        -X "GET" \
+                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=high&product_type=2&limit=0" \
+                        -H "accept: application/json" \
+                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
         echo "critical=$critical" >> $GITHUB_OUTPUT
         echo "high=$high" >> $GITHUB_OUTPUT
