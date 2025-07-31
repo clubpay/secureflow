@@ -34,7 +34,12 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y jq curl
         echo "Fetching findings..."
-
+        curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                        --key ${{ steps.auth.outputs.key-file }} \
+                        -X "GET" \
+                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=0" \
+                        -H "accept: application/json" \
+                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}"
         critical=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -X "GET" \
@@ -44,10 +49,9 @@ jobs:
         high=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -X "GET" \
-                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=high&product_type=2&limit=0" \
+                        "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&product_type=2&limit=0" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
-
         echo "critical=$critical" >> $GITHUB_OUTPUT
         echo "high=$high" >> $GITHUB_OUTPUT
 
