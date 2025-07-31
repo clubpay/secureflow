@@ -1,0 +1,39 @@
+name: Weekly Alerts to Slack
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 10 * * 1'
+
+jobs:
+  alerts:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Fetching Binaries for Teleport
+    - name: Fetch Teleport Binaries
+      uses: teleport-actions/setup@v1
+      with:
+        version: 18.1.0
+    
+    # Step 2: Fetching Credentials
+    - name: Fetch Credentials Using Machine ID
+      id: auth
+      uses: teleport-actions/auth-application@v2
+      with:
+        proxy: teleport.qlub.cloud:443
+        token: defectdojo-github-action
+        app: defectdojo
+        anonymous-telemetry: 0
+    
+    # Step 3: Get Defectdojo Summary
+    - name: Get Findings Statistics from Defectdojo
+      run: |
+        sudo apt-get update && sudo apt-get install -y jq curl
+        echo "Fetching findings..."
+        response=$(curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High,Critical&limit=10000" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}")
+        echo $response
+        critical=$(echo "$response" | jq '[.results[] | select(.severity == "Critical")] | length')
+        high=$(echo "$response" | jq '[.results[] | select(.severity == "High")] | length')
+        echo $critical
+        echo $high
