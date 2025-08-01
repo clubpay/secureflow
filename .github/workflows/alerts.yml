@@ -57,10 +57,8 @@ jobs:
       run: |
         message="*:rocket-animated: Weekly Update on SecureFlow Scans:*
 
-
         :rotating-light-red: *Open Critical Findings*: $critical  
         :warning: *Open High Findings*: $high
-
 
         :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide. It provides guidance to quickly resolve issues or appropriately skip test/stage code blocks using suppression comments or exclusion configurations."
 
