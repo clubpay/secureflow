@@ -32,7 +32,9 @@ jobs:
     - name: Remove files/dirs according to gitignore-style patterns
       shell: bash
       run: |
+        #Ensure safe execution (fail fast on errors, catch unset variables, detect pipeline errors)
         set -euo pipefail
+        #Enable flexible recursive globbing, including hidden files, and avoids issues with unmatched patterns
         shopt -s globstar nullglob dotglob
     
         # Convert space-separated SAST_EXCLUDE_LIST into array
