@@ -29,31 +29,34 @@ jobs:
         token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
       
     # Step 2: Remove sast_exclude_list
-    - name: Remove specified files/directories in SAST_EXCLUDE_LIST
+    - name: Remove files/dirs matching SAST_EXCLUDE_LIST (gitignore semantics)
       shell: bash
       run: |
-        # Write exclusion patterns to a temp file
         ls
-        ls ./openapi-spec
-        echo "${{ inputs.SAST_EXCLUDE_LIST }}" | tr ' ' '\n' > .tempignore
+        ls openapi-spec
+        set -euo pipefail
+
+        # 1) Write patterns to a temp file (space- or newline-separated input supported)
+        #    This file uses .gitignore syntax.
+        printf "%s\n" ${{ inputs.SAST_EXCLUDE_LIST }} | tr ' ' '\n' > .sastignore.tmp
 
         echo "Exclusion patterns:"
-        cat .tempignore
+        nl -ba .sastignore.tmp || cat .sastignore.tmp
 
-        # Ask git which files match these patterns
-        git ls-files -co | git check-ignore --stdin > .matches || true
+        # 2) Ask Git to list ONLY paths (tracked + untracked) that MATCH those patterns.
+        #    -c: include tracked files
+        #    -o: include untracked files
+        #    -i/--ignored: show only items that match the exclude patterns
+        #    --exclude-from: read patterns from our temp file (gitignore format)
+        #    --directory: if an entire untracked dir matches, list the dir itself
+        #    -z: NUL-delimit results so we can safely xargs them
+        git ls-files -c -o -i --ignored --exclude-from=.sastignore.tmp --directory -z \
+          | xargs -0 -r rm -rf
 
-        echo "Matched files to remove:"
-        cat .matches || true
-
-        # Remove matched files/directories
-        if [ -s .matches ]; then
-          xargs rm -rf < .matches
-        fi
-
-        rm -f .tempignore .matches
+        # 3) Clean up (succeeds even if the temp file was matched and removed above)
+        rm -f .sastignore.tmp
         ls
-        ls ./openapi-spec
+        ls openapi-spec
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep Scan
       run: |
