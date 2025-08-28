@@ -112,7 +112,7 @@ jobs:
           echo "Removing: $f"
           rm -rf "$f"
         done
-        ls
+        
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep Scan
       run: |
