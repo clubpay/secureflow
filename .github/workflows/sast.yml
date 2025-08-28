@@ -35,7 +35,7 @@ jobs:
         ls
         ls openapi-spec
         ls docs
-        ls images
+        ls docs/images
         set -euo pipefail
 
         # 1) Write patterns to a temp file (space- or newline-separated input supported)
@@ -60,7 +60,7 @@ jobs:
         ls
         ls openapi-spec
         ls docs
-        ls images
+        ls docs/images
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep Scan
       run: |
