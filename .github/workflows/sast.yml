@@ -31,8 +31,8 @@ jobs:
     # Step 2: Remove sast_exclude_list
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       shell: bash
-      run: |     
-       # Create a temporary ignore file with user-provided patterns
+      run: |
+        # Write exclusion patterns to a temp file
         ls
         ls ./openapi-spec
         echo "${{ inputs.SAST_EXCLUDE_LIST }}" | tr ' ' '\n' > .tempignore
@@ -40,16 +40,18 @@ jobs:
         echo "Exclusion patterns:"
         cat .tempignore
 
-        # Use gitignore-style matching to find files
-        # -c : cached/tracked
-        # -o : others (untracked)
-        # --exclude-from : apply ignore rules
-        git ls-files -co --exclude-from=.tempignore | while read file; do
-          echo "Removing: $file"
-          rm -rf "$file"
-        done
+        # Ask git which files match these patterns
+        git ls-files -co | git check-ignore --stdin > .matches || true
 
-        rm .tempignore
+        echo "Matched files to remove:"
+        cat .matches || true
+
+        # Remove matched files/directories
+        if [ -s .matches ]; then
+          xargs rm -rf < .matches
+        fi
+
+        rm -f .tempignore .matches
         ls
         ls ./openapi-spec
     # Step 3: Run Semgrep scan on all files and output to a JSON file
