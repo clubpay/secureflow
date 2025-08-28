@@ -32,11 +32,15 @@ jobs:
     - name: Remove specified files/directories in SAST_EXCLUDE_LIST
       shell: bash
       run: |
+        ls
+        ls ./openapi-spec
         shopt -s nullglob globstar
         for pattern in ${{ inputs.SAST_EXCLUDE_LIST }}; do
           echo "Removing: $pattern"
           rm -rf $pattern
         done
+        ls
+        ls ./openapi-spec
 
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep Scan
