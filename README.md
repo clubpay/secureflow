@@ -188,13 +188,23 @@ my_function()
 ```
 ### 2. Skip Files and Directories
 
-You can exclude specific directories or files from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables. These variables accept a space-separated list of file and directory names that should be ignored during scanning. To apply these exclusions, you can reuse the workflows **with** these variables.
+You can exclude specific files or directories from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables.
+
+These variables accept a **space-separated list of file or directory patterns**, following **`.gitignore` / `.semgrepignore` syntax**. This means you can use:
+
+- `*_test.go` → matches all `_test.go` files recursively
+- `docs/` → matches the `docs` directory at the repository root
+- `**/generated/` → matches any `generated` directory at any depth
+- `!important.txt` → re-includes a file that would otherwise be excluded
+
+To apply these exclusions, simply pass your patterns to the workflow via these variables when reusing it in your repository.
+
 ```yaml
 jobs:
   sast:
     uses: clubpay/secureflow/.github/workflows/sast.yml@main
     with:
-      SAST_EXCLUDE_LIST: "community/certs/server.key README.md MyAwsomeDirectory stage.env"
+      SAST_EXCLUDE_LIST: "**/generated/ docs/"
     secrets:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
@@ -204,7 +214,7 @@ jobs:
   secret-detection:
     uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
     with:
-      SECRET_DETECTION_EXCLUDE_LIST: "services/community.go mock.go README.md AwsomeDirectory"
+      SECRET_DETECTION_EXCLUDE_LIST: "postman_collections/ *_test.go !DontRemove_test.go"
     secrets:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
