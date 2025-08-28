@@ -32,9 +32,7 @@ jobs:
     - name: Remove files/dirs according to gitignore-style patterns
       shell: bash
       run: |
-        ls 
-        ls docs
-        ls docs/images
+        ls
         ls openapi-spec
         set -euo pipefail
         shopt -s globstar nullglob dotglob
@@ -114,9 +112,7 @@ jobs:
           echo "Removing: $f"
           rm -rf "$f"
         done
-        ls 
-        ls docs
-        ls docs/images
+        ls
         ls openapi-spec
     # Step 3: Run Semgrep scan on all files and output to a JSON file
     - name: Run Semgrep Scan
