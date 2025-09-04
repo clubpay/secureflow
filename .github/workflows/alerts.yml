@@ -104,4 +104,4 @@ jobs:
         
         payload=$(jq -n --arg text "$message" '{text: $text}')
         echo $payload
-        curl -X POST -H "Content-type: application/json" --data "$payload" "https://hooks.slack.com/services/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"
+        curl -X POST -H "Content-type: application/json" --data "$payload" "https://hooks.slack.com/services/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"
