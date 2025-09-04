@@ -55,7 +55,6 @@ jobs:
         echo "Fetching per-product findings..."
         per_product_summary=""
 
-        # safer: iterate with jq -r to only output product names
         for name in $(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                            --key ${{ steps.auth.outputs.key-file }} \
                            -s "https://defectdojo.teleport.qlub.cloud/api/v2/products/?limit=100&prod_type=2" \
@@ -75,7 +74,9 @@ jobs:
                     -H "accept: application/json" \
                     -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
-          per_product_summary="${per_product_summary}\n• ${name}: ${crit}C, ${hi}H"
+          if [ "$crit" -gt 0 ] || [ "$hi" -gt 0 ]; then
+            per_product_summary="${per_product_summary}\n• ${name}: ${crit}C, ${hi}H"
+          fi
         done
 
         {
@@ -100,6 +101,7 @@ jobs:
         $per_product
 
         :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide."
-
+        
         payload=$(jq -n --arg text "$message" '{text: $text}')
+        echo $payload
         curl -X POST -H "Content-type: application/json" --data "$payload" "https://hooks.slack.com/services/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"
