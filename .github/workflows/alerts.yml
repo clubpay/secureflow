@@ -53,35 +53,36 @@ jobs:
         echo "high=$high" >> $GITHUB_OUTPUT
 
         echo "Fetching per-product findings..."
-        products=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
-                        --key ${{ steps.auth.outputs.key-file }} \
-                        -s "https://defectdojo.teleport.qlub.cloud/api/v2/products/?limit=100&prod_type=2" \
-                        -H "accept: application/json" \
-                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq -c '.results[]')
-
         per_product_summary=""
 
-        for row in $products; do
-          name=$(echo "$row" | jq -r '.name')
+        # safer: iterate with jq -r to only output product names
+        for name in $(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                           --key ${{ steps.auth.outputs.key-file }} \
+                           -s "https://defectdojo.teleport.qlub.cloud/api/v2/products/?limit=100&prod_type=2" \
+                           -H "accept: application/json" \
+                           -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" \
+                           | jq -r '.results[].name'); do
 
           crit=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                       --key ${{ steps.auth.outputs.key-file }} \
-                      -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&limit=1&product_name=${name}" \
+                      -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
                       -H "accept: application/json" \
                       -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
           hi=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                     --key ${{ steps.auth.outputs.key-file }} \
-                    -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=${name}" \
+                    -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
                     -H "accept: application/json" \
                     -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
           per_product_summary="${per_product_summary}\n• ${name}: ${crit}C, ${hi}H"
         done
 
-        echo "per_product_summary<<EOF" >> $GITHUB_OUTPUT
-        echo -e "$per_product_summary" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        {
+          echo "per_product_summary<<EOF"
+          echo -e "$per_product_summary"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
 
     # Step 4: Send Summary to Slack
     - name: Send Message to Slack
