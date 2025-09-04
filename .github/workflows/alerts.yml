@@ -59,7 +59,6 @@ jobs:
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq -c '.results[]')
 
-        # We'll collect into a temp file for sorting
         tmpfile=$(mktemp)
 
         for row in $products; do
@@ -84,13 +83,13 @@ jobs:
           fi
         done
 
-        # Sort numerically descending by total findings
         per_product_summary=$(sort -nrk1,1 "$tmpfile" | cut -f2-)
 
-        echo "per_product_summary<<EOF" >> $GITHUB_OUTPUT
-        echo -e "$per_product_summary" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-
+        {
+          echo "per_product_summary<<EOF"
+          echo "$per_product_summary"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
 
     # Step 4: Send Summary to Slack
     - name: Send Message to Slack
