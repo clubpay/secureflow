@@ -33,34 +33,81 @@ jobs:
       id: get_findings
       run: |
         sudo apt-get update && sudo apt-get install -y jq curl
-        echo "Fetching findings..."
+
+        echo "Fetching global findings counts..."
         critical=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
-                        -X "GET" \
+                        -s -X "GET" \
                         "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
+
         high=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
-                        -X "GET" \
+                        -s -X "GET" \
                         "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&product_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
+
         echo "critical=$critical" >> $GITHUB_OUTPUT
         echo "high=$high" >> $GITHUB_OUTPUT
+
+        echo "Fetching per-product findings..."
+        products=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                        --key ${{ steps.auth.outputs.key-file }} \
+                        -s "https://defectdojo.teleport.qlub.cloud/api/v2/products/?limit=100&prod_type=2" \
+                        -H "accept: application/json" \
+                        -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq -c '.results[]')
+
+        # We'll collect into a temp file for sorting
+        tmpfile=$(mktemp)
+
+        for row in $products; do
+          name=$(echo "$row" | jq -r '.name')
+
+          crit=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                      --key ${{ steps.auth.outputs.key-file }} \
+                      -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&limit=1&product_name=${name}" \
+                      -H "accept: application/json" \
+                      -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
+
+          hi=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                    --key ${{ steps.auth.outputs.key-file }} \
+                    -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=${name}" \
+                    -H "accept: application/json" \
+                    -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
+
+          total=$((crit + hi))
+
+          if [ "$total" -gt 0 ]; then
+            echo -e "$total\t• ${name}: ${crit}C, ${hi}H" >> "$tmpfile"
+          fi
+        done
+
+        # Sort numerically descending by total findings
+        per_product_summary=$(sort -nrk1,1 "$tmpfile" | cut -f2-)
+
+        echo "per_product_summary<<EOF" >> $GITHUB_OUTPUT
+        echo -e "$per_product_summary" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
 
     # Step 4: Send Summary to Slack
     - name: Send Message to Slack
       env:
         critical: ${{ steps.get_findings.outputs.critical }}
         high: ${{ steps.get_findings.outputs.high }}
+        per_product: ${{ steps.get_findings.outputs.per_product_summary }}
       run: |
         message="*:rocket-animated: Weekly Update on SecureFlow Scans:*
 
         :rotating-light-red: *Open Critical Findings*: $critical  
         :warning: *Open High Findings*: $high
 
-        :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide. It provides guidance to quickly resolve issues or appropriately skip test/stage code blocks using suppression comments or exclusion configurations."
+        *Per-Product Breakdown:*  
+        $per_product
+
+        :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide."
 
         payload=$(jq -n --arg text "$message" '{text: $text}')
-        curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.SLACK_WEBHOOK_URL }}"
+        curl -X POST -H "Content-type: application/json" --data "$payload" "https://hooks.slack.com/services/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"
