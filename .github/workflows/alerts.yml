@@ -59,7 +59,7 @@ jobs:
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq -c '.results[]')
 
-        tmpfile=$(mktemp)
+        per_product_summary=""
 
         for row in $products; do
           name=$(echo "$row" | jq -r '.name')
@@ -76,20 +76,12 @@ jobs:
                     -H "accept: application/json" \
                     -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
-          total=$((crit + hi))
-
-          if [ "$total" -gt 0 ]; then
-            echo -e "$total\t• ${name}: ${crit}C, ${hi}H" >> "$tmpfile"
-          fi
+          per_product_summary="${per_product_summary}\n• ${name}: ${crit}C, ${hi}H"
         done
 
-        per_product_summary=$(sort -nrk1,1 "$tmpfile" | cut -f2-)
-
-        {
-          echo "per_product_summary<<EOF"
-          echo "$per_product_summary"
-          echo "EOF"
-        } >> $GITHUB_OUTPUT
+        echo "per_product_summary<<EOF" >> $GITHUB_OUTPUT
+        echo -e "$per_product_summary" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
 
     # Step 4: Send Summary to Slack
     - name: Send Message to Slack
