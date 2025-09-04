@@ -103,4 +103,4 @@ jobs:
         :hammer_and_wrench: Please review the findings and refer to the <https://github.com/clubpay/secureflow/wiki/%F0%9F%9B%A0%EF%B8%8F-Fix-in-Flash-%E2%9A%A1|*Fix in Flash*> guide to quickly resolve issues or appropriately skip test code/files using exclusion configurations."
         
         payload=$(jq -n --arg text "$message" '{text: $text}')
-        curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.TEST_SLACK }}"
+        curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.SLACK_WEBHOOK_URL }}"
