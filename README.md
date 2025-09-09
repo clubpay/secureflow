@@ -146,7 +146,7 @@ Skipping SAST Scans (Example 1):
 import os
 
 def get_user_input():
-  user_input = input("Enter something: ") #nosemgrep
+  user_input = input("Enter something: ") # nosemgrep
   print(f"You entered: {user_input}")
   return user_input
 
@@ -163,7 +163,7 @@ import (
 )
 
 func main() {
-    command := os.Getenv("MY_COMMAND") //nosemgrep
+    command := os.Getenv("MY_COMMAND") // nosemgrep
     fmt.Println("Executing:", command)
 }
 ```
