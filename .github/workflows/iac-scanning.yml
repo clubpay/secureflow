@@ -29,8 +29,6 @@ jobs:
     - name: Remove files/dirs according to gitignore-style patterns
       shell: bash
       run: |
-        ls -la
-        ls -la deploy/docker
         #Ensure safe execution (fail fast on errors, catch unset variables, detect pipeline errors)
         set -euo pipefail
         #Enable flexible recursive globbing, including hidden files, and avoids issues with unmatched patterns
@@ -111,8 +109,6 @@ jobs:
           echo "Removing: $f"
           rm -rf "$f"
         done
-        ls -la
-        ls -la deploy/docker
     # Step 3: run the scan
     - name: Run KICS Scan
       run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user
