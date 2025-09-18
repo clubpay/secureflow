@@ -188,7 +188,7 @@ my_function()
 ```
 ### 2. Skip Files and Directories
 
-You can exclude specific files or directories from SAST and secret detection scans by using the **SAST_EXCLUDE_LIST** and **SECRET_DETECTION_EXCLUDE_LIST** variables.
+You can exclude specific files or directories from SAST,ecret detection, and IaC scans by using the **SAST_EXCLUDE_LIST**, **SECRET_DETECTION_EXCLUDE_LIST**, and **IAC_SCANNING_EXCLUDE_LIST** variables.
 
 These variables accept a **space-separated list of file or directory patterns**, following **`.gitignore` / `.semgrepignore` syntax**. This means you can use:
 
@@ -196,6 +196,7 @@ These variables accept a **space-separated list of file or directory patterns**,
 - `docs/` → matches the `docs` directory at the repository root
 - `**/generated/` → matches any `generated` directory at any depth
 - `!important.txt` → re-includes a file that would otherwise be excluded
+- `**/docker-compose.yml` → matches all `docker-compose.yml` files recursively
 
 To apply these exclusions, simply pass your patterns to the workflow via these variables when reusing it in your repository.
 
@@ -215,6 +216,16 @@ jobs:
     uses: clubpay/secureflow/.github/workflows/secret-detection.yml@main
     with:
       SECRET_DETECTION_EXCLUDE_LIST: "postman_collections/ *_test.go !DontRemove_test.go"
+    secrets:
+      GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
+      DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+    permissions:
+      id-token: write
+
+  iac-scanning:
+    uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@main
+    with:
+      IAC_SCANNING_EXCLUDE_LIST: "**/docker-compose.yml !/deploy/docker/docker-compose.yml"
     secrets:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
