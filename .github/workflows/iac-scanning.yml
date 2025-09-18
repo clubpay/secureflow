@@ -3,6 +3,10 @@ name: Infrastructure as Code Scanning
 on:
   workflow_dispatch:  # Allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
+    inputs:
+      IAC_SCANNING_EXCLUDE_LIST:
+        required: false
+        type: string # space separated list of files/folders to exclude from scan
     secrets:
       GLOBAL_REPO_TOKEN:
         required: false
@@ -21,18 +25,105 @@ jobs:
       uses: actions/checkout@v4
       with: #if the repo is public and GLOBAL_REPO_TOKEN is not present, we use the default token generated in the Github action to prevent errors
         token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
-
-    # Step 2: run the scan
+    # Step 2: Remove iac_scanning_exclude_list
+    - name: Remove files/dirs according to gitignore-style patterns
+      shell: bash
+      run: |
+        ls -la
+        ls -la deploy/docker
+        #Ensure safe execution (fail fast on errors, catch unset variables, detect pipeline errors)
+        set -euo pipefail
+        #Enable flexible recursive globbing, including hidden files, and avoids issues with unmatched patterns
+        shopt -s globstar nullglob dotglob
+    
+        # Convert space-separated IAC_SCANNING_EXCLUDE_LIST into array
+        read -ra patterns <<< "${{ inputs.IAC_SCANNING_EXCLUDE_LIST }}"
+    
+        # Array to store files/dirs to delete
+        declare -a to_delete=()
+    
+        for pattern in "${patterns[@]}"; do
+          # Skip blank lines and comments
+          [[ -z "$pattern" || "$pattern" =~ ^# ]] && continue
+    
+          # Handle negation
+          negate=false
+          if [[ "$pattern" == !* ]]; then
+            negate=true
+            pattern="${pattern:1}"
+          fi
+    
+          echo "Processing pattern: $pattern (negate=$negate)"
+    
+          # Determine if pattern is directory-only
+          dir_only=false
+          if [[ "$pattern" == */ ]]; then
+            dir_only=true
+            pattern="${pattern%/}"
+          fi
+    
+          # Root-only pattern
+          root_only=false
+          if [[ "$pattern" == /* ]]; then
+            root_only=true
+            pattern="${pattern#/}"
+          fi
+    
+          # Generate matches
+          matches=()
+          if $root_only; then
+            if $dir_only; then
+              [[ -d "$pattern" ]] && matches+=("$pattern")
+            else
+              [[ -e "$pattern" ]] && matches+=("$pattern")
+            fi
+          else
+            if $dir_only; then
+              # directories recursively
+              while IFS= read -r d; do
+                matches+=("$d")
+              done < <(find . -type d -path "./$pattern" 2>/dev/null)
+            else
+              # files and dirs recursively
+              while IFS= read -r f; do
+                matches+=("$f")
+              done < <(find . -path "./$pattern" 2>/dev/null)
+            fi
+          fi
+    
+          # Apply negation: remove from deletion list
+          if $negate; then
+            for m in "${matches[@]}"; do
+              for i in "${!to_delete[@]}"; do
+                [[ "${to_delete[i]}" == "$m" ]] && unset 'to_delete[i]'
+              done
+            done
+          else
+            to_delete+=("${matches[@]}")
+          fi
+        done
+    
+        # Remove duplicates
+        IFS=$'\n' read -r -d '' -a to_delete < <(printf '%s\n' "${to_delete[@]}" | sort -u && printf '\0')
+    
+        # Delete all collected files/dirs
+        for f in "${to_delete[@]}"; do
+          echo "Removing: $f"
+          rm -rf "$f"
+        done
+        ls -la
+        ls -la deploy/docker
+    # Step 3: run the scan
     - name: Run KICS Scan
       run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user
         docker run --user $(id -u):$(id -g) -t -v "${PWD}":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
-    # Step 3: Fetching Binaries for Teleport
+    # Step 4: Fetching Binaries for Teleport
     - name: Fetch Teleport Binaries
       uses: teleport-actions/setup@v1
       with:
         version: 18.1.0
     
-    # Step 4: Fetching Credentials
+    # Step 5: Fetching Credentials
     - name: Fetch Credentials Using Machine ID
       id: auth
       uses: teleport-actions/auth-application@v2
@@ -42,14 +133,14 @@ jobs:
         app: defectdojo
         anonymous-telemetry: 0
         
-    # Step 5: Upload the KICS report to DefectDojo
+    # Step 6: Upload the KICS report to DefectDojo
     - name: Upload KICS JSON Report to Defectdojo
       run: |
         TODAY=$(date +%Y-%m-%d)
         product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
         curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@kics-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(IaC-Scanning)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=KICS Scan" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
     
-    # Step 6: Upload the KICS report as an artifact
+    # Step 7: Upload the KICS report as an artifact
     - name: Upload KICS Report to Artifacts
       uses: actions/upload-artifact@v4
       with:
