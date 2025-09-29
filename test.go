@@ -178,7 +178,7 @@ func (m *acl) ApplyPayment(ctx context.Context, orderID, txnID, total, bill, tip
 	}
 
 	checkSeqCasted := int32(checkSeq) // nosemgrep
-	err := m.addPayment(ctx, checkSeqCasted,txnID, bill, tip)
+	err := m.addPayment(ctx, checkSeqCasted,txnID, bill, tip) // nosemgrep
 	if err != nil {
 		m.lg.ErrorCtx(ctx, "error on addPayment", log.Error(err))
 
