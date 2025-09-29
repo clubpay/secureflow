@@ -177,7 +177,7 @@ func (m *acl) ApplyPayment(ctx context.Context, orderID, txnID, total, bill, tip
 		return fmt.Errorf("orderId %d out of int32 range", checkSeq)
 	}
 
-	checkSeqCasted := int32(checkSeq) // nosemgrep: all
+	checkSeqCasted := int32(checkSeq) // nosemgrep: trailofbits.go.string-to-int-signedness-cast.string-to-int-signedness-cast
 	err := m.addPayment(ctx, checkSeqCasted,txnID, bill, tip)
 	if err != nil {
 		m.lg.ErrorCtx(ctx, "error on addPayment", log.Error(err))
