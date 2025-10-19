@@ -88,17 +88,22 @@ jobs:
         token: defectdojo-github-action
         app: defectdojo
         anonymous-telemetry: 0
-        
+    # Step test_8: Upload SBOM to Dependency-Track
+    
+    - name: Upload SBOM to Dependency-Track Test
+      run: |
+        curl -X POST https://dependency-track.teleport.qlub.cloud/api/api/v1/bom -H "X-Api-Key: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}" -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
+          
     # Step 8: Upload SBOM to Dependency-Track
     - name: Upload SBOM to Dependency-Track
       uses: DependencyTrack/gh-upload-sbom@v3
       with:
         serverHostname: dependency-track.teleport.qlub.cloud/api
         apiKey: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
-        bomFilename: sbom.json
-        projectName: $(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+        bomFilename: "sbom.json"
+        projectName: 'SecureFlow'
         autoCreate: true
-        
+
     # Step 9: Upload deduplicated Grype report to DefectDojo
     - name: Upload Deduplicated Grype Report to Defectdojo
       run: |
