@@ -36,7 +36,7 @@ jobs:
         
     # Step 3.1: Upload SBOM to Dependency-Track
     - name: Upload SBOM to Dependency-Track
-      uses: DependencyTrack/gh-upload-sbom@v1
+      uses: DependencyTrack/gh-upload-sbom@v3
       with:
         serverHostname: dependency-track.teleport.qlub.cloud
         apiKey: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
