@@ -74,35 +74,35 @@ jobs:
             json.dump({"matches": list(unique.values())}, out, indent=2)
         EOF
 
-    # Step 6: Fetch Teleport CLI
-    - name: Fetch Teleport Binaries
-      uses: teleport-actions/setup@v1
-      with:
-        version: 18.1.0
+    # # Step 6: Fetch Teleport CLI
+    # - name: Fetch Teleport Binaries
+    #   uses: teleport-actions/setup@v1
+    #   with:
+    #     version: 18.1.0
 
-    # Step 7: Authenticate with DefectDojo through Teleport
-    - name: Fetch Credentials Using Machine ID
-      id: auth
-      uses: teleport-actions/auth-application@v2
-      with:
-        proxy: teleport.qlub.cloud:443
-        token: defectdojo-github-action
-        app: defectdojo
-        anonymous-telemetry: 0
+    # # Step 7: Authenticate with DefectDojo through Teleport
+    # - name: Fetch Credentials Using Machine ID
+    #   id: auth
+    #   uses: teleport-actions/auth-application@v2
+    #   with:
+    #     proxy: teleport.qlub.cloud:443
+    #     token: defectdojo-github-action
+    #     app: defectdojo
+    #     anonymous-telemetry: 0
         
     # Step test_8: Upload SBOM to Dependency-Track
     - name: Upload SBOM to Dependency-Track Test
       run: |
         curl -X -i POST http://dependency-track-api-server.dependency-track.svc.cluster.local:8080/api/v1/bom -H "X-Api-Key: ${{ secrets.DEP_TRACK_API_KEY }}" -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
-    # Step 8: Upload SBOM to Dependency-Track
-    - name: Upload SBOM to Dependency-Track
-      uses: DependencyTrack/gh-upload-sbom@v3
-      with:
-        serverHostname: dependency-track.teleport.qlub.cloud/api
-        apiKey: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
-        bomFilename: "sbom.json"
-        projectName: 'SecureFlow'
-        autoCreate: true
+    # # Step 8: Upload SBOM to Dependency-Track
+    # - name: Upload SBOM to Dependency-Track
+    #   uses: DependencyTrack/gh-upload-sbom@v3
+    #   with:
+    #     serverHostname: dependency-track.teleport.qlub.cloud/api
+    #     apiKey: ${{ secrets.DEPENDENCY_TRACK_API_KEY }}
+    #     bomFilename: "sbom.json"
+    #     projectName: 'SecureFlow'
+    #     autoCreate: true
 
     # Step 9: Upload deduplicated Grype report to DefectDojo
     - name: Upload Deduplicated Grype Report to Defectdojo
