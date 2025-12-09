@@ -35,7 +35,7 @@ jobs:
     - name: Generate SBOM
       run: |
         /usr/local/bin/syft version
-        /usr/local/bin/syft . -v -o json > sbom.json
+        /usr/local/bin/syft . -v -o cyclonedx-json=sbom.json
 
     # Step 4: Scan the SBOM with Grype to detect vulnerabilities
     - name: Scan SBOM with Grype
@@ -79,7 +79,7 @@ jobs:
     # Step test_8: Upload SBOM to Dependency-Track
     - name: Upload SBOM to Dependency-Track
       run: |
-        curl -i -X POST http://dependency-track-api-server.dependency-track.svc.cluster.local:8080/api/v1/bom -H "X-Api-Key: ${{ secrets.DEP_TRACK_API_KEY }}" -H "Content-Type: multipart/form-data"  -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
+        curl -i -X POST http://dependency-track-api-server.dependency-track.svc.cluster.local:8080/api/v1/bom -H "X-Api-Key: ${{ secrets.DEP_TRACK_API_KEY }}" -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
 
     # Step 6: Fetch Teleport CLI
     # - name: Fetch Teleport Binaries
