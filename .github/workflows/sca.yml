@@ -8,6 +8,8 @@ on:
         required: false
       DEFECTDOJO_TOKEN:
         required: false
+      DEP_TRACK_API_KEY:
+        required: false
 
 jobs:
   sca:
