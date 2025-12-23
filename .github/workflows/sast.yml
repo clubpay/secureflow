@@ -132,7 +132,7 @@ jobs:
       with:
         proxy: teleport.qlub.cloud:443
         token: defectdojo-github-action
-        app: defectdojo
+        app: defectdojo-hz
         anonymous-telemetry: 0
     
     # Step 6: Upload to Defectdojo Behind Teleport
@@ -140,7 +140,7 @@ jobs:
       run: |
         TODAY=$(date +%Y-%m-%d)
         product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
-        curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
         
     # Step 7: Upload the Semgrep Report as an Artifact
     - name: Upload Semgrep Report to Artifacts
