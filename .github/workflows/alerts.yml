@@ -70,7 +70,7 @@ jobs:
 
           hi=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                     --key ${{ steps.auth.outputs.key-file }} \
-                    -s "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
+                    -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
                     -H "accept: application/json" \
                     -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
