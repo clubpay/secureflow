@@ -25,7 +25,7 @@ jobs:
       with:
         proxy: teleport.qlub.cloud:443
         token: defectdojo-github-action
-        app: defectdojo
+        app: defectdojo-hz
         anonymous-telemetry: 0
     
     # Step 3: Get Defectdojo Summary
