@@ -103,12 +103,14 @@ jobs:
       id-token: write #This is essential for authentication to Teleport
 
   sca:
-    uses: clubpay/secureflow/.github/workflows/sca.yml@main
+    uses: clubpay/secureflow/.github/workflows/sca.yml@DepTrack_Action
     secrets:
       GLOBAL_REPO_TOKEN: ${{ secrets.GLOBAL_REPO_TOKEN }}
       DEFECTDOJO_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
+      DEP_TRACK_API_KEY: ${{ secrets.DEP_TRACK_API_KEY }}
     permissions:
       id-token: write
+      contents: read
 
   iac-scanning:
     uses: clubpay/secureflow/.github/workflows/iac-scanning.yml@main
