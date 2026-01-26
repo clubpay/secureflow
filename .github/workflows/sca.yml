@@ -122,7 +122,7 @@ jobs:
             
         - name: Scan with VET
           run: |
-            docker run --rm -v -w /app $(pwd):/app ghcr.io/safedep/vet:latest scan -D /app --malware-query vulns.critical.exists(x, true) --report-sarif /app/vet-report.sarif
+            docker run --rm -v -w /app $(pwd):/app ghcr.io/safedep/vet:latest scan -D /app --malware-query --filter 'vulns.critical.exists(p, true)' --report-sarif /app/vet-report.sarif
             
         - name: Fetch Teleport Binaries
           uses: teleport-actions/setup@v1
