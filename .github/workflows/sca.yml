@@ -128,7 +128,7 @@ jobs:
               ghcr.io/safedep/vet:latest \
               scan -D /app \
               --malware-query \
-              --report-sarif-malware \
+              --report-sarif-vulns false \
               --report-sarif /app/vet-report.sarif
 
         - name: Fetch Teleport Binaries
