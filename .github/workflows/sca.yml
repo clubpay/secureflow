@@ -122,7 +122,7 @@ jobs:
 
         - name: Scan with VET (Safedep)
           run: |
-            docker run --rm -v $(pwd):/app ghcr.io/safedep/vet:latest scan -D /app --malware-query --report-sarif vet-report.sarif
+            docker run --rm -v $(pwd):/app ghcr.io/safedep/vet:latest scan -D /app --malware-query --report-sarif /app/vet-report.sarif
             ls -la
         - name: Fetch Teleport Binaries
           uses: teleport-actions/setup@v1
