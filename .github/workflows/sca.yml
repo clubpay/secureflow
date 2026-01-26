@@ -127,7 +127,7 @@ jobs:
             
         - name: Scan with VET
           run: |
-            vet scan -D . --malware --report-defect-dojo vet-report.sarif
+            vet scan -D . --malware --report-sarif vet-report.sarif
             
         - name: Fetch Teleport Binaries
           uses: teleport-actions/setup@v1
