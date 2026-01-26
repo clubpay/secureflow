@@ -120,10 +120,15 @@ jobs:
           with:
             token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
 
-        - name: Scan with VET (Safedep)
+        - name: Install VET and set Go PATH
           run: |
-            docker run --rm -v $(pwd):/app ghcr.io/safedep/vet:latest scan -D /app --malware-query --report-sarif /app/vet-report.sarif
-            ls -la
+            go install github.com/safedep/vet@latest
+            echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+            
+        - name: Scan with VET
+          run: |
+            vet scan -D . --malware --report-defect-dojo vet-report.sarif
+            
         - name: Fetch Teleport Binaries
           uses: teleport-actions/setup@v1
           with:
