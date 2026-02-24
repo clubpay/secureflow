@@ -26,22 +26,23 @@ jobs:
         token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
 
     # Step 2: Install Syft and Grype tools
+    # Install into workspace directory and use from there, to prevent the need for sudo
     - name: Install Syft and Grype
       run: |
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
-        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b . # install into current dir
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b . # install into current dir
 
     # Step 3: Generate SBOM from the project
     - name: Generate SBOM
       run: |
-        /usr/local/bin/syft version
-        /usr/local/bin/syft . -v -o cyclonedx-json=sbom.json
+        ./syft version
+        ./syft . -v -o cyclonedx-json=sbom.json
 
     # Step 4: Scan the SBOM with Grype to detect vulnerabilities
     - name: Scan SBOM with Grype
       run: |
-        /usr/local/bin/grype version
-        /usr/local/bin/grype sbom:sbom.json -v -o json > grype-report.json
+        ./grype version
+        ./grype sbom:sbom.json -v -o json > grype-report.json
 
     # Step 5: Deduplicate findings by dependency, keeping only the highest-severity issue for each one
     - name: Deduplicate Grype Findings
