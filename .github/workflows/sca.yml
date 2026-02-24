@@ -29,8 +29,8 @@ jobs:
     # Install into workspace directory and use from there, to prevent the need for sudo
     - name: Install Syft and Grype
       run: |
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b . # install into current dir
-        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b . # install into current dir
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b . # install into current dir
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b . # install into current dir
 
     # Step 3: Generate SBOM from the project
     - name: Generate SBOM
