@@ -13,7 +13,7 @@ on:
 
 jobs:
   sca:
-    runs-on: [self-hosted, hetzner-runner]
+    runs-on: [hzk8s-runner]
     permissions:
       id-token: write
       contents: read
