@@ -13,7 +13,8 @@ on:
 
 jobs:
   sca:
-    runs-on: [hzk8s-runner]
+    runs-on:
+      group: qlub-hetzner-k8s-runners    
     permissions:
       id-token: write
       contents: read
