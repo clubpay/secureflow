@@ -92,7 +92,7 @@ jobs:
         high: ${{ steps.get_findings.outputs.high }}
         per_product: ${{ steps.get_findings.outputs.per_product_summary }}
       run: |
-        message="*:rocket-animated: Weekly Update on SecureFlow Scans:*
+        message="*:rocket-animated: Monthly Update on SecureFlow Scans:*
 
         :rotating-light-red: *Open Critical Findings*: $critical  
         :warning: *Open High Findings*: $high
