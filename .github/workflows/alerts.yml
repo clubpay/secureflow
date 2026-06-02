@@ -2,8 +2,8 @@ name: Monthly Alerts to Slack
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 18 1 * *'  # Run on the first day of every month at 18:00 UTC
+  # schedule:
+  #   - cron: '0 18 1 * *'  # Run on the first day of every month at 18:00 UTC
 
 jobs:
   alerts:
