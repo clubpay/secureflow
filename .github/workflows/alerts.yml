@@ -103,4 +103,4 @@ jobs:
         
         payload=$(jq -n --arg text "$message" '{text: $text}')
         echo $payload
-      # curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.SLACK_WEBHOOK_URL }}"
+        curl -X POST -H "Content-type: application/json" --data "$payload" "${{ secrets.SLACK_WEBHOOK_URL }}"
