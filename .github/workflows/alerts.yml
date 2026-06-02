@@ -48,7 +48,8 @@ jobs:
                         "https://defectdojo.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&product_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
-
+        echo $high
+        echo $critical
         echo "critical=$critical" >> $GITHUB_OUTPUT
         echo "high=$high" >> $GITHUB_OUTPUT
 
@@ -73,8 +74,6 @@ jobs:
                     -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
                     -H "accept: application/json" \
                     -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
-          echo $crit
-          echo $high
           if [ "$crit" -gt 0 ] || [ "$hi" -gt 0 ]; then
             per_product_summary="${per_product_summary}\n• ${name}: ${crit}C, ${hi}H"
           fi
