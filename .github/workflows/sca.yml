@@ -33,11 +33,14 @@ jobs:
         curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b . # install into current dir
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b . # install into current dir
 
-    # Step 3: Generate SBOM from the project
+    # Step 3: Generate SBOM from the project (excluding syft/grype binaries)
     - name: Generate SBOM
       run: |
         ./syft version
-        ./syft . -v -o cyclonedx-json=sbom.json
+        ./syft . -v -o cyclonedx-json=sbom.json \
+          --exclude ./syft \
+          --exclude ./grype
+
 
     # Step 4: Scan the SBOM with Grype to detect vulnerabilities
     - name: Scan SBOM with Grype
