@@ -4,6 +4,13 @@ on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
       inputs:
+        FORCE_DEFECTDOJO_UPLOAD:
+          required: false
+          type: boolean
+          default: false   # upload from any branch (smoke tests); normally only the default branch uploads
+        DEFECTDOJO_PRODUCT_NAME:
+          required: false
+          type: string     # DefectDojo product name; defaults to the repository name
         IAC_SCANNING_EXCLUDE_LIST:
           required: false
           type: string # space separated list of files/folders to exclude from scan
@@ -15,6 +22,9 @@ on:
        
 jobs:
   iac-scanning:
+    concurrency:   # one import at a time per repo+scan; never cancel a running import
+      group: secureflow-iac-scanning-${{ github.repository }}-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       id-token: write
     runs-on: ubuntu-latest
@@ -111,16 +121,36 @@ jobs:
         done
     # Step 3: run the scan
     - name: Run KICS Scan
-      run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user
-        docker run --user $(id -u):$(id -g) -t -v "${PWD}":/path -w /path checkmarx/kics scan -p /path --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
+      run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user. --exclude-paths needs the absolute /path/ prefix (a relative glob is silently ignored)
+        docker run --user $(id -u):$(id -g) -t -v "${PWD}":/path -w /path checkmarx/kics:v2.1.20 scan -p /path --exclude-paths "/path/**/test/**,/path/**/tests/**,/path/**/__tests__/**,/path/**/__mocks__/**,/path/**/mocks/**,/path/**/fixtures/**,/path/**/testdata/**,/path/**/e2e/**,/path/**/cypress/**" --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
+    # Only the default branch's state goes to DefectDojo: an import closes every
+    # finding of the product that is absent from it (close_old_findings, product
+    # scope), so feature-branch and PR scans used to close live findings and
+    # re-create them on the next run. Other branches scan and keep the report
+    # as an artifact.
+    - name: Decide DefectDojo Upload
+      id: gate
+      env:
+        FORCE: ${{ inputs.FORCE_DEFECTDOJO_UPLOAD }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        if [ "$FORCE" = "true" ] || { [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
+          echo "upload=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "upload=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::$GITHUB_REF_NAME is not the default branch ($DEFAULT_BRANCH): scan only, no DefectDojo upload"
+        fi
+
     # Step 4: Fetching Binaries for Teleport
     - name: Fetch Teleport Binaries
+      if: steps.gate.outputs.upload == 'true'
       uses: teleport-actions/setup@v1
       with:
         version: 18.1.0
     
     # Step 5: Fetching Credentials
     - name: Fetch Credentials Using Machine ID
+      if: steps.gate.outputs.upload == 'true'
       id: auth
       uses: teleport-actions/auth-application@v2
       with:
@@ -131,9 +161,12 @@ jobs:
         
     # Step 6: Upload the KICS report to DefectDojo
     - name: Upload KICS JSON Report to Defectdojo
+      env:
+        DD_PRODUCT_NAME: ${{ inputs.DEFECTDOJO_PRODUCT_NAME }}
+      if: steps.gate.outputs.upload == 'true'
       run: |
         TODAY=$(date +%Y-%m-%d)
-        product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+        product_name="${DD_PRODUCT_NAME:-$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)}"
         curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@kics-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(IaC-Scanning)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=KICS Scan" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
     
     # Step 7: Upload the KICS report as an artifact
