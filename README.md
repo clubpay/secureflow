@@ -129,6 +129,34 @@ jobs:
       id-token: write
 
 ```
+## How Results Reach DefectDojo
+
+- **Only the default branch uploads.** Each upload closes every finding of the product that is missing from it (`close_old_findings` with product scope). Feature branches and pull requests used to close findings that were still open on the default branch, and the next default-branch scan re-created them. Other branches still run every scan and keep the report as a workflow artifact, but they do not upload. The workflow log says so with a notice.
+- **One upload at a time** per repository and scan type (`concurrency`), so two imports cannot close each other's findings.
+- Optional inputs for special cases:
+  - `FORCE_DEFECTDOJO_UPLOAD: true` uploads from any branch.
+  - `DEFECTDOJO_PRODUCT_NAME` overrides the product name, which is otherwise the repository name.
+
+## What Is Excluded by Default
+
+| | SAST (Semgrep) | Secrets (Gitleaks) | SCA (Syft/Grype) | IaC (KICS) |
+|---|---|---|---|---|
+| Test code, mocks, fixtures: `test/` `tests/` `__tests__/` `__mocks__/` `mocks/` `fixtures/` `testdata/` `spec/` `e2e/` `cypress/`, `*_test.go`, `*.spec.*`, `*.test.*`, `test_*.py`, `conftest.py`, Go mocks | ✔ | ✔ | ✔ | ✔ |
+| Semgrep's own defaults: `node_modules/` `vendor/` `dist/` `build/` `*.min.js` | ✔ | (Gitleaks defaults) | | |
+| Generated code (`*.pb.go`, `*_pb2.py`) and vendored bundles (`*swagger-ui*`, `*.bundle.js`) | ✔ | | | |
+| Secret-type rules: secrets are Gitleaks' job only | ✔ | | | |
+| INFO-level rules (notices, not vulnerabilities) | ✔ | | | |
+
+A repository's own `.semgrepignore` and `.gitleaks.toml` are kept, and the defaults are added to them.
+
+### Exclude Lists and Secret Detection
+
+`SECRET_DETECTION_EXCLUDE_LIST` is turned into a Gitleaks path allowlist. Gitleaks scans the git **history**, so the old approach of deleting files from the checkout excluded nothing. Patterns mean the same as in the other exclude lists: they are relative to the repository root, and `*` matches across directories. Re-include patterns (`!file`) cannot be expressed as a Gitleaks allowlist, so for secret detection they are ignored with a notice.
+
+## Tool Versions
+
+The scanners are pinned: Semgrep 1.178.0, Gitleaks v8.30.1, Syft 1.54.0, Grype 0.119.0, KICS v2.1.20. Syft and Grype are release archives checked against their published checksums. They are installed outside the scanned folder, so the scanners' own binaries no longer show up as findings. Upgrade a version on purpose, in one commit, not silently through `latest`.
+
 ## Skipping Files or Lines from Scanning
 
 You can skip certain files, folders, or lines from being scanned by SecureFlow.
@@ -191,14 +219,14 @@ my_function()
 ```
 ### 2. Skip Files and Directories
 
-You can exclude specific files or directories from SAST,ecret detection, and IaC scans by using the **SAST_EXCLUDE_LIST**, **SECRET_DETECTION_EXCLUDE_LIST**, and **IAC_SCANNING_EXCLUDE_LIST** variables.
+You can exclude specific files or directories from SAST, secret detection, and IaC scans by using the **SAST_EXCLUDE_LIST**, **SECRET_DETECTION_EXCLUDE_LIST**, and **IAC_SCANNING_EXCLUDE_LIST** variables.
 
-These variables accept a **space-separated list of file or directory patterns**, following **`.gitignore` / `.semgrepignore` syntax**. This means you can use:
+These variables accept a **space-separated list of file or directory patterns**, relative to the repository root (`*` also matches across directories). This means you can use:
 
 - `*_test.go` → matches all `_test.go` files recursively
 - `docs/` → matches the `docs` directory at the repository root
 - `**/generated/` → matches any `generated` directory at any depth
-- `!important.txt` → re-includes a file that would otherwise be excluded
+- `!important.txt` → re-includes a file that would otherwise be excluded (SAST and IaC only; not possible for secret detection, see above)
 - `**/docker-compose.yml` → matches all `docker-compose.yml` files recursively
 
 To apply these exclusions, simply pass your patterns to the workflow via these variables when reusing it in your repository.

@@ -3,6 +3,14 @@ name: Software Composition Analysis
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      FORCE_DEFECTDOJO_UPLOAD:
+        required: false
+        type: boolean
+        default: false   # upload from any branch (smoke tests); normally only the default branch uploads
+      DEFECTDOJO_PRODUCT_NAME:
+        required: false
+        type: string     # DefectDojo product name; defaults to the repository name
     secrets:
       GLOBAL_REPO_TOKEN:
         required: false
@@ -13,6 +21,9 @@ on:
 
 jobs:
   sca:
+    concurrency:   # one import at a time per repo+scan; never cancel a running import
+      group: secureflow-sca-${{ github.repository }}-${{ github.ref }}
+      cancel-in-progress: false
     runs-on:
       group: qlub-hetzner-k8s-runners    
     permissions:
@@ -26,41 +37,77 @@ jobs:
       with:
         token: ${{ secrets.GLOBAL_REPO_TOKEN || github.token }}
 
-    # Step 2: Install Syft and Grype tools
-    # Install into workspace directory and use from there, to prevent the need for sudo
+    # Step 2: Install Syft and Grype OUTSIDE the scanned tree (runner temp),
+    # pinned release archives verified against their published checksums (no
+    # remote install script). Installed into the checkout, the scanners' own
+    # binaries were catalogued as the project's dependencies (/syft, /grype findings).
     - name: Install Syft and Grype
       run: |
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b . # install into current dir
-        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b . # install into current dir
+        set -euo pipefail
+        mkdir -p "$RUNNER_TEMP/bin" && cd "$RUNNER_TEMP"
+        case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; *) echo "unsupported arch $(uname -m)"; exit 1 ;; esac
+        fetch() {  # tool version — release archive, verified against the release's checksums file
+          tool=$1; ver=$2; file="${tool}_${ver}_linux_${arch}.tar.gz"
+          base="https://github.com/anchore/${tool}/releases/download/v${ver}"
+          curl -sSfL -o "$file" "$base/$file"
+          curl -sSfL -o "${tool}_checksums.txt" "$base/${tool}_${ver}_checksums.txt"
+          grep " ${file}\$" "${tool}_checksums.txt" | sha256sum -c -
+          tar -xzf "$file" -C "$RUNNER_TEMP/bin" "$tool"
+        }
+        fetch syft 1.54.0
+        fetch grype 0.119.0
+        echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
-    # Step 3: Generate SBOM from the project (excluding syft/grype binaries)
+    # Step 3: Generate the SBOM from the project, without test, mock and
+    # fixture manifests (never shipped)
     - name: Generate SBOM
       run: |
-        ./syft version
-        ./syft . -v -o cyclonedx-json=sbom.json \
-          --exclude ./syft \
-          --exclude ./grype
-
+        syft version
+        syft . -v -o cyclonedx-json=sbom.json \
+          --exclude './**/test/**' --exclude './**/tests/**' --exclude './**/__tests__/**' \
+          --exclude './**/__mocks__/**' --exclude './**/mocks/**' --exclude './**/mock/**' \
+          --exclude './**/fixtures/**' --exclude './**/testdata/**' --exclude './**/e2e/**' \
+          --exclude './**/cypress/**'
 
     # Step 4: Scan the SBOM with Grype to detect vulnerabilities
     - name: Scan SBOM with Grype
       run: |
-        ./grype version
-        ./grype sbom:sbom.json -v -o json > grype-report.json
-        
+        grype version
+        grype sbom:sbom.json -v -o json > grype-report.json
+
     # Step 5: Upload SBOM to Dependency-Track
     - name: Upload SBOM to Dependency-Track
       run: |
         curl -i -X POST http://dependency-track-api-server.dependency-track.svc.cluster.local:8080/api/v1/bom -H "X-Api-Key: ${{ secrets.DEP_TRACK_API_KEY }}" -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
 
+    # Only the default branch's state goes to DefectDojo: an import closes every
+    # finding of the product that is absent from it (close_old_findings, product
+    # scope), so feature-branch and PR scans used to close live findings and
+    # re-create them on the next run. Other branches scan and keep the report
+    # as an artifact.
+    - name: Decide DefectDojo Upload
+      id: gate
+      env:
+        FORCE: ${{ inputs.FORCE_DEFECTDOJO_UPLOAD }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        if [ "$FORCE" = "true" ] || { [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
+          echo "upload=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "upload=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::$GITHUB_REF_NAME is not the default branch ($DEFAULT_BRANCH): scan only, no DefectDojo upload"
+        fi
+
     # Step 6: Fetch Teleport CLI
     - name: Fetch Teleport Binaries
+      if: steps.gate.outputs.upload == 'true'
       uses: teleport-actions/setup@v1
       with:
         version: 18.1.0
 
     # Step 7: Authenticate with DefectDojo through Teleport
     - name: Fetch Credentials Using Machine ID
+      if: steps.gate.outputs.upload == 'true'
       id: auth
       uses: teleport-actions/auth-application@v2
       with:
@@ -70,9 +117,12 @@ jobs:
         anonymous-telemetry: 0
        # Upload deduplicated Grype report to DefectDojo
     - name: Upload Deduplicated Grype Report to Defectdojo
+      env:
+        DD_PRODUCT_NAME: ${{ inputs.DEFECTDOJO_PRODUCT_NAME }}
+      if: steps.gate.outputs.upload == 'true'
       run: |
         TODAY=$(date +%Y-%m-%d)
-        product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+        product_name="${DD_PRODUCT_NAME:-$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)}"
         curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@grype-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SCA)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=Anchore Grype" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
 
     - name: Upload Reports and SBOM

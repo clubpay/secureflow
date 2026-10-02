@@ -4,6 +4,13 @@ on:
   workflow_dispatch:  # This allows manual trigger
   workflow_call:  # Allows this workflow to be reusable by other repositories
       inputs:
+        FORCE_DEFECTDOJO_UPLOAD:
+          required: false
+          type: boolean
+          default: false   # upload from any branch (smoke tests); normally only the default branch uploads
+        DEFECTDOJO_PRODUCT_NAME:
+          required: false
+          type: string     # DefectDojo product name; defaults to the repository name
         SAST_EXCLUDE_LIST:
           required: false
           type: string # space separated list of files/folders to exclude from scan
@@ -15,6 +22,9 @@ on:
 
 jobs:
   sast:
+    concurrency:   # one import at a time per repo+scan; never cancel a running import
+      group: secureflow-sast-${{ github.repository }}-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       id-token: write
     runs-on: ubuntu-latest
@@ -113,20 +123,131 @@ jobs:
           rm -rf "$f"
         done
         
-    # Step 3: Run Semgrep scan on all files and output to a JSON file
+    # Step 3: Default exclusions (tests, mocks, fixtures, generated code)
+    # A repo-root .semgrepignore REPLACES Semgrep's built-in ignore list, so the
+    # built-ins are repeated here; the repo's own .semgrepignore (if any) is kept.
+    - name: Apply SecureFlow Default Exclusions
+      run: |
+        [ -f .semgrepignore ] && echo "" >> .semgrepignore
+        cat >> .semgrepignore <<'EOF'
+        # SecureFlow default exclusions (appended to the repo's own .semgrepignore, if any).
+        # A repo-root .semgrepignore REPLACES Semgrep's built-in defaults, so those are repeated here.
+
+        # Semgrep's built-in defaults
+        .git/
+        node_modules/
+        vendor/
+        dist/
+        build/
+        *.min.js
+
+        # CI caches inside the checkout (downloaded dependencies, not our code)
+        .cache/
+        .go/
+
+        # Test code, mocks and fixtures (never shipped)
+        test/
+        tests/
+        __tests__/
+        __mocks__/
+        __fixtures__/
+        mocks/
+        mock/
+        fixtures/
+        testdata/
+        spec/
+        e2e/
+        cypress/
+        *_test.go
+        *_mock.go
+        mock_*.go
+        *.spec.js
+        *.spec.jsx
+        *.spec.ts
+        *.spec.tsx
+        *.test.js
+        *.test.jsx
+        *.test.ts
+        *.test.tsx
+        test_*.py
+        *_test.py
+        conftest.py
+
+        # Vendored front-end bundles (not ours; slow to parse, time out rules)
+        *swagger-ui*
+        *.bundle.js
+
+        # Generated code
+        *.pb.go
+        *.pb.gw.go
+        *_pb2.py
+        *_pb2_grpc.py
+        EOF
+
+    # Step 4: Run Semgrep. The GitLab SAST report is what DefectDojo imports
+    # (its ids are stable across runs); the JSON report only feeds the filter
+    # below with rule metadata (the OSS JSON has no usable fingerprint).
     - name: Run Semgrep Scan
       run: |
-        docker run --rm -v "${PWD}:/src" semgrep/semgrep semgrep ci $EXCLUDED_RULES --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --config=p/mcp --config=p/ai-best-practices --gitlab-sast --output=semgrep-report.json || EXIT_CODE=$?
-        if [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then exit $EXIT_CODE; fi
-    
-    # Step 4: Fetching Binaries for Teleport
+        EXIT_CODE=0
+        docker run --rm -v "${PWD}:/src" semgrep/semgrep:1.178.0 semgrep ci $EXCLUDED_RULES --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --config=p/mcp --config=p/ai-best-practices --gitlab-sast-output=semgrep-report-raw.json --json-output=semgrep-metadata.json || EXIT_CODE=$?
+        if [ "$EXIT_CODE" -ne 0 ] && [ "$EXIT_CODE" -ne 1 ]; then exit "$EXIT_CODE"; fi
+
+    # Step 5: Drop secret rules (Gitleaks owns secrets) and INFO-level notices.
+    # Decided per rule from its metadata, so new registry rules are covered too.
+    - name: Filter Semgrep Report
+      shell: python3 {0}
+      run: |
+        import json, re
+        SECRET_CWE = re.compile(r"CWE-(798|259|321)\b", re.I)   # hard-coded credentials, password, key
+        SECRET_ID = re.compile(r"(hardcod|(^|[._-])secrets?([._-]|$)|node_password|node_username|node_api_key|api[-_]?key)", re.I)
+        drop = {}
+        for r in json.load(open("semgrep-metadata.json")).get("results", []):
+            ex = r["extra"]; m = ex.get("metadata") or {}
+            cwe = m.get("cwe") or []
+            cwe = " ".join(cwe) if isinstance(cwe, list) else str(cwe)
+            if ex.get("severity") == "INFO":
+                drop[r["check_id"]] = "info"
+            elif ("secrets" in [str(t).lower() for t in (m.get("technology") or [])]
+                  or SECRET_CWE.search(cwe) or SECRET_ID.search(r["check_id"])):
+                drop[r["check_id"]] = "secret"
+        report = json.load(open("semgrep-report-raw.json"))
+        vulns = report.get("vulnerabilities", [])
+        rule_of = lambda v: str(v.get("cve", "")).rsplit(":", 1)[-1]   # "<path>:<hash>:<rule id>"
+        report["vulnerabilities"] = [v for v in vulns if rule_of(v) not in drop]
+        json.dump(report, open("semgrep-report.json", "w"))
+        print("kept %d of %d findings; dropped rules:" % (len(report["vulnerabilities"]), len(vulns)))
+        for rule, why in sorted(drop.items()):
+            print("  %-6s %s" % (why, rule))
+
+    # Only the default branch's state goes to DefectDojo: an import closes every
+    # finding of the product that is absent from it (close_old_findings, product
+    # scope), so feature-branch and PR scans used to close live findings and
+    # re-create them on the next run. Other branches scan and keep the report
+    # as an artifact.
+    - name: Decide DefectDojo Upload
+      id: gate
+      env:
+        FORCE: ${{ inputs.FORCE_DEFECTDOJO_UPLOAD }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      run: |
+        if [ "$FORCE" = "true" ] || { [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
+          echo "upload=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "upload=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::$GITHUB_REF_NAME is not the default branch ($DEFAULT_BRANCH): scan only, no DefectDojo upload"
+        fi
+
+    # Step 6: Fetching Binaries for Teleport
     - name: Fetch Teleport Binaries
+      if: steps.gate.outputs.upload == 'true'
       uses: teleport-actions/setup@v1
       with:
         version: 18.1.0
     
-    # Step 5: Fetching Credentials
+    # Step 7: Fetching Credentials
     - name: Fetch Credentials Using Machine ID
+      if: steps.gate.outputs.upload == 'true'
       id: auth
       uses: teleport-actions/auth-application@v2
       with:
@@ -135,16 +256,21 @@ jobs:
         app: defectdojo-hz
         anonymous-telemetry: 0
     
-    # Step 6: Upload to Defectdojo Behind Teleport
+    # Step 8: Upload to Defectdojo Behind Teleport
     - name: Upload Semgrep JSON Report to Defectdojo
+      env:
+        DD_PRODUCT_NAME: ${{ inputs.DEFECTDOJO_PRODUCT_NAME }}
+      if: steps.gate.outputs.upload == 'true'
       run: |
         TODAY=$(date +%Y-%m-%d)
-        product_name=$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)
+        product_name="${DD_PRODUCT_NAME:-$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)}"
         curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
         
-    # Step 7: Upload the Semgrep Report as an Artifact
+    # Step 9: Upload the Semgrep Report as an Artifact
     - name: Upload Semgrep Report to Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-report
-        path: semgrep-report.json
+        path: |
+          semgrep-report.json
+          semgrep-report-raw.json

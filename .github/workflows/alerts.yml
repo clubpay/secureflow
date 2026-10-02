@@ -38,14 +38,14 @@ jobs:
         critical=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -s -X "GET" \
-                        "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&product_type=2&limit=1" \
+                        "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&test__engagement__product__prod_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
         high=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                         --key ${{ steps.auth.outputs.key-file }} \
                         -s -X "GET" \
-                        "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&product_type=2&limit=1" \
+                        "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&test__engagement__product__prod_type=2&limit=1" \
                         -H "accept: application/json" \
                         -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
@@ -55,28 +55,35 @@ jobs:
         echo "Fetching per-product findings..."
         per_product_summary=""
 
-        for name in $(curl --cert ${{ steps.auth.outputs.certificate-file }} \
-                           --key ${{ steps.auth.outputs.key-file }} \
-                           -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/products/?limit=100&prod_type=2" \
-                           -H "accept: application/json" \
-                           -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" \
-                           | jq -r '.results[].name'); do
+        # every Clubpay product (paginated), one name per line — names may contain spaces
+        url="https://defectdojo-hz.teleport.qlub.cloud/api/v2/products/?limit=100&prod_type=2"
+        : > products.txt
+        while [ -n "$url" ] && [ "$url" != "null" ]; do
+          page=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
+                      --key ${{ steps.auth.outputs.key-file }} \
+                      -s "$url" -H "accept: application/json" \
+                      -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}")
+          echo "$page" | jq -r '.results[].name' >> products.txt
+          url=$(echo "$page" | jq -r '.next')
+        done
 
+        while IFS= read -r name; do
+          enc=$(jq -rn --arg n "$name" '$n|@uri')
           crit=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                       --key ${{ steps.auth.outputs.key-file }} \
-                      -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
+                      -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=Critical&limit=1&product_name=${enc}" \
                       -H "accept: application/json" \
                       -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
 
           hi=$(curl --cert ${{ steps.auth.outputs.certificate-file }} \
                     --key ${{ steps.auth.outputs.key-file }} \
-                    -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=$(jq -rn --arg n "$name" '$n')" \
+                    -s "https://defectdojo-hz.teleport.qlub.cloud/api/v2/findings/?active=true&verified=true&severity=High&limit=1&product_name=${enc}" \
                     -H "accept: application/json" \
                     -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" | jq '.count')
           if [ "$crit" -gt 0 ] || [ "$hi" -gt 0 ]; then
             per_product_summary="${per_product_summary}\n• ${name}: ${crit}C, ${hi}H"
           fi
-        done
+        done < products.txt
 
         {
           echo "per_product_summary<<EOF"
