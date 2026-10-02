@@ -63,7 +63,7 @@ jobs:
     - name: Generate SBOM
       run: |
         syft version
-        syft . -v -o cyclonedx-json=sbom.json \
+        syft . -v -o cyclonedx-json@1.6=sbom.json \
           --exclude './**/test/**' --exclude './**/tests/**' --exclude './**/__tests__/**' \
           --exclude './**/__mocks__/**' --exclude './**/mocks/**' --exclude './**/mock/**' \
           --exclude './**/fixtures/**' --exclude './**/testdata/**' --exclude './**/e2e/**' \
@@ -75,12 +75,7 @@ jobs:
         grype version
         grype sbom:sbom.json -v -o json > grype-report.json
 
-    # Step 5: Upload SBOM to Dependency-Track
-    - name: Upload SBOM to Dependency-Track
-      run: |
-        curl -i -X POST http://dependency-track-api-server.dependency-track.svc.cluster.local:8080/api/v1/bom -H "X-Api-Key: ${{ secrets.DEP_TRACK_API_KEY }}" -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
-
-    # Only the default branch's state goes to DefectDojo: an import closes every
+    # Only the default branch uploads (DefectDojo and Dependency-Track): an import closes every
     # finding of the product that is absent from it (close_old_findings, product
     # scope), so feature-branch and PR scans used to close live findings and
     # re-create them on the next run. Other branches scan and keep the report
@@ -95,8 +90,18 @@ jobs:
           echo "upload=true" >> "$GITHUB_OUTPUT"
         else
           echo "upload=false" >> "$GITHUB_OUTPUT"
-          echo "::notice::$GITHUB_REF_NAME is not the default branch ($DEFAULT_BRANCH): scan only, no DefectDojo upload"
+          echo "::notice::$GITHUB_REF_NAME is not the default branch ($DEFAULT_BRANCH): scan only, no DefectDojo / Dependency-Track upload"
         fi
+
+    # Step 5: Upload SBOM to Dependency-Track
+    # Default branch only (load), CycloneDX 1.6 (above). A rejected BOM shows as
+    # a failed step (curl -i alone reported success on HTTP 400) but never
+    # blocks the DefectDojo upload.
+    - name: Upload SBOM to Dependency-Track
+      if: steps.gate.outputs.upload == 'true'
+      continue-on-error: true
+      run: |
+        curl -sS --fail-with-body -X POST http://dependency-track-api-server.dependency-track.svc.cluster.local:8080/api/v1/bom -H "X-Api-Key: ${{ secrets.DEP_TRACK_API_KEY }}" -F "projectName=$(echo ${GITHUB_REPOSITORY} | cut -d'/' -f2)" -F "autoCreate=true" -F "bom=@sbom.json"
 
     # Step 6: Fetch Teleport CLI
     - name: Fetch Teleport Binaries
