@@ -11,6 +11,9 @@ on:
         DEFECTDOJO_PRODUCT_NAME:
           required: false
           type: string     # DefectDojo product name; defaults to the repository name
+        SECUREFLOW_RULES_REF:
+          required: false
+          type: string     # ref of clubpay/secureflow to take rules/additional-rules.yml from (default: main)
         SAST_EXCLUDE_LIST:
           required: false
           type: string # space separated list of files/folders to exclude from scan
@@ -184,41 +187,77 @@ jobs:
         *_pb2_grpc.py
         EOF
 
+    # Step 3b: SecureFlow's additional rules (rules/additional-rules.yml in this
+    # repository). A reusable workflow runs in the CALLER's checkout, so the file
+    # is fetched; no caller change needed. A failed fetch fails the job: a scan
+    # without these rules would auto-close every finding they reported before.
+    - name: Fetch SecureFlow Additional Rules
+      env:
+        RULES_REF: ${{ inputs.SECUREFLOW_RULES_REF || 'main' }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/secureflow-rules"
+        curl -sSfL --retry 3 -o "$RUNNER_TEMP/secureflow-rules/additional-rules.yml" \
+          "https://raw.githubusercontent.com/clubpay/secureflow/${RULES_REF}/rules/additional-rules.yml"
+        grep -q '^rules:' "$RUNNER_TEMP/secureflow-rules/additional-rules.yml"
+        echo "additional rules: $(grep -c '^- id:' "$RUNNER_TEMP/secureflow-rules/additional-rules.yml")"
+
     # Step 4: Run Semgrep. The GitLab SAST report is what DefectDojo imports
     # (its ids are stable across runs); the JSON report only feeds the filter
     # below with rule metadata (the OSS JSON has no usable fingerprint).
     - name: Run Semgrep Scan
       run: |
         EXIT_CODE=0
-        docker run --rm -v "${PWD}:/src" semgrep/semgrep:1.178.0 semgrep ci $EXCLUDED_RULES --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --config=p/mcp --config=p/ai-best-practices --gitlab-sast-output=semgrep-report-raw.json --json-output=semgrep-metadata.json || EXIT_CODE=$?
+        docker run --rm -v "${PWD}:/src" -v "$RUNNER_TEMP/secureflow-rules:/secureflow-rules:ro" semgrep/semgrep:1.178.0 semgrep ci $EXCLUDED_RULES --metrics=off --exclude=*.yml --exclude=*.yaml --exclude=*.json --exclude=*docker* --exclude=*Docker* --config=p/mobsfscan --config=p/nodejsscan --config=p/owasp-top-ten --config=p/cwe-top-25 --config=p/security-audit --config=p/default --config=p/mcp --config=p/ai-best-practices --config=/secureflow-rules/additional-rules.yml --gitlab-sast-output=semgrep-report-raw.json --json-output=semgrep-metadata.json || EXIT_CODE=$?
         if [ "$EXIT_CODE" -ne 0 ] && [ "$EXIT_CODE" -ne 1 ]; then exit "$EXIT_CODE"; fi
 
-    # Step 5: Drop secret rules (Gitleaks owns secrets) and INFO-level notices.
-    # Decided per rule from its metadata, so new registry rules are covered too.
+    # Step 5: Filter the report, decided from each rule's own metadata (so new
+    # registry rules are covered too):
+    #   - secret-type rules (Gitleaks owns secrets), INFO notices, and rules
+    #     whose category is not security (compatibility, performance, ...)
+    #   - an additional-rules finding that a registry rule already reports on
+    #     the same line with a shared CWE (keep one finding per issue)
     - name: Filter Semgrep Report
       shell: python3 {0}
       run: |
         import json, re
         SECRET_CWE = re.compile(r"CWE-(798|259|321)\b", re.I)   # hard-coded credentials, password, key
         SECRET_ID = re.compile(r"(hardcod|(^|[._-])secrets?([._-]|$)|node_password|node_username|node_api_key|api[-_]?key)", re.I)
-        drop = {}
-        for r in json.load(open("semgrep-metadata.json")).get("results", []):
+        ADDITIONAL = "secureflow-rules."
+        # CWE family: a child CWE counts as its parent (CWE-95 eval injection is CWE-94 code injection)
+        FAMILY = {"95": "94", "96": "94", "78": "77", "88": "77", "564": "89", "943": "89", "23": "22",
+                  "36": "22", "73": "22", "80": "79", "83": "79", "87": "79", "776": "611", "827": "611"}
+        def cwes(m):
+            raw = [m.get("cwe")] if isinstance(m.get("cwe"), str) else (m.get("cwe") or [])
+            nums = {re.sub(r"\D", "", str(c).split(":")[0]) for c in raw}
+            return {"CWE-" + FAMILY.get(n, n) for n in nums if n}
+        drop_rules, drop_hits, by_line = {}, set(), {}
+        results = json.load(open("semgrep-metadata.json")).get("results", [])
+        for r in results:
             ex = r["extra"]; m = ex.get("metadata") or {}
-            cwe = m.get("cwe") or []
-            cwe = " ".join(cwe) if isinstance(cwe, list) else str(cwe)
+            cat = str(m.get("category") or "security").lower()
             if ex.get("severity") == "INFO":
-                drop[r["check_id"]] = "info"
+                drop_rules[r["check_id"]] = "info"
             elif ("secrets" in [str(t).lower() for t in (m.get("technology") or [])]
-                  or SECRET_CWE.search(cwe) or SECRET_ID.search(r["check_id"])):
-                drop[r["check_id"]] = "secret"
+                  or SECRET_CWE.search(" ".join(cwes(m))) or SECRET_ID.search(r["check_id"])):
+                drop_rules[r["check_id"]] = "secret"
+            elif cat != "security":
+                drop_rules[r["check_id"]] = "not-security:" + cat
+            elif not r["check_id"].startswith(ADDITIONAL):
+                by_line.setdefault((r["path"], r["start"]["line"]), set()).update(cwes(m))
+        for r in results:
+            if r["check_id"].startswith(ADDITIONAL) and r["check_id"] not in drop_rules:
+                if cwes(r["extra"].get("metadata") or {}) & by_line.get((r["path"], r["start"]["line"]), set()):
+                    drop_hits.add((r["check_id"], r["path"], r["start"]["line"]))
         report = json.load(open("semgrep-report-raw.json"))
         vulns = report.get("vulnerabilities", [])
         rule_of = lambda v: str(v.get("cve", "")).rsplit(":", 1)[-1]   # "<path>:<hash>:<rule id>"
-        report["vulnerabilities"] = [v for v in vulns if rule_of(v) not in drop]
+        hit_of = lambda v: (rule_of(v), v["location"].get("file"), v["location"].get("start_line"))
+        report["vulnerabilities"] = [v for v in vulns if rule_of(v) not in drop_rules and hit_of(v) not in drop_hits]
         json.dump(report, open("semgrep-report.json", "w"))
-        print("kept %d of %d findings; dropped rules:" % (len(report["vulnerabilities"]), len(vulns)))
-        for rule, why in sorted(drop.items()):
-            print("  %-6s %s" % (why, rule))
+        print("kept %d of %d findings; %d additional-rule finding(s) already reported by a registry rule; dropped rules:"
+              % (len(report["vulnerabilities"]), len(vulns), len(drop_hits)))
+        for rule, why in sorted(drop_rules.items()):
+            print("  %-22s %s" % (why, rule))
 
     # Only the default branch's state goes to DefectDojo: an import closes every
     # finding of the product that is absent from it (close_old_findings, product
