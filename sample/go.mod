@@ -1,4 +1,4 @@
-module snapp/soleyman
+module example.com/soleyman
 
 go 1.18
 
@@ -27,8 +27,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.4
-	gitlab.snapp.ir/backend/proto v1.36.0
-	gitlab.snapp.ir/superapp/launchpad v1.0.0-rc1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.40.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.40.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.13.0
