@@ -132,7 +132,7 @@ jobs:
 ## Good to Know
 
 - **Only the default branch is reported to DefectDojo.** Other branches and pull requests still run every scan; their reports are in the workflow run's artifacts.
-- **Test code is not scanned:** `test/`, `tests/`, `__tests__/`, `__mocks__/`, `mocks/`, `fixtures/`, `testdata/`, `spec/`, `e2e/`, `cypress/`, `*_test.go`, `*.spec.*`, `*.test.*`, `test_*.py` and similar. Your own `.semgrepignore` and `.gitleaks.toml` still apply.
+- **Test code is not scanned:** `test/`, `tests/`, `__tests__/`, `__mocks__/`, `mocks/`, `fixtures/`, `testdata/`, `spec/`, `e2e/`, `cypress/`, `*_test.go`, `*.spec.*`, `*.test.*`, `test_*.py` and similar. If your repository has its own `.semgrepignore` (SAST) or `.gitleaks.toml` (Secret Detection), it is still used, and these defaults are added on top.
 - **Secrets are reported only by Secret Detection**, not by SAST.
 
 ## Skipping Files or Lines from Scanning
