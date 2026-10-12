@@ -121,8 +121,8 @@ jobs:
         done
     # Step 3: run the scan
     - name: Run KICS Scan
-      run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user. --exclude-paths needs the absolute /path/ prefix (a relative glob is silently ignored)
-        docker run --user $(id -u):$(id -g) -t -v "${PWD}":/path -w /path checkmarx/kics:v2.1.20 scan -p /path --exclude-paths "/path/**/test/**,/path/**/tests/**,/path/**/__tests__/**,/path/**/__mocks__/**,/path/**/mocks/**,/path/**/fixtures/**,/path/**/testdata/**,/path/**/e2e/**,/path/**/cypress/**" --exclude-severities info,low --disable-secrets --ignore-on-exit all --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
+      run: | # Set the working directory to /path to avoid adding any prefix to file paths in Defectdojo. --user command is to ensure the created file's access is not limited to the root user. --exclude-paths needs the absolute /path/ prefix (a relative glob is silently ignored). --ignore-on-exit results: findings never fail the job, a KICS error does (a partial report would close live findings)
+        docker run --user $(id -u):$(id -g) -t -v "${PWD}":/path -w /path checkmarx/kics:v2.1.20 scan -p /path --exclude-paths "/path/**/test/**,/path/**/tests/**,/path/**/__tests__/**,/path/**/__mocks__/**,/path/**/mocks/**,/path/**/fixtures/**,/path/**/testdata/**,/path/**/e2e/**,/path/**/cypress/**" --exclude-severities info,low --disable-secrets --ignore-on-exit results --report-formats json -o . --output-name kics-report -t Ansible,AzureResourceManager,Buildah,CloudFormation,DockerCompose,Dockerfile,GRPC,GoogleDeploymentManager,Kubernetes,Terraform
     # Only the default branch's state goes to DefectDojo: an import closes every
     # finding of the product that is absent from it (close_old_findings, product
     # scope), so feature-branch and PR scans used to close live findings and
@@ -133,8 +133,11 @@ jobs:
       env:
         FORCE: ${{ inputs.FORCE_DEFECTDOJO_UPLOAD }}
         DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        DD_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
       run: |
         if [ "$FORCE" = "true" ] || { [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
+          # An empty token only shows up later as an HTTP 401 from the upload
+          if [ -z "$DD_TOKEN" ]; then echo "::error::DEFECTDOJO_TOKEN is empty: pass it under secrets: in the calling workflow"; exit 1; fi
           echo "upload=true" >> "$GITHUB_OUTPUT"
         else
           echo "upload=false" >> "$GITHUB_OUTPUT"
@@ -167,7 +170,7 @@ jobs:
       run: |
         TODAY=$(date +%Y-%m-%d)
         product_name="${DD_PRODUCT_NAME:-$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)}"
-        curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@kics-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(IaC-Scanning)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=KICS Scan" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        curl --fail-with-body --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@kics-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(IaC-Scanning)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=KICS Scan" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
     
     # Step 7: Upload the KICS report as an artifact
     - name: Upload KICS Report to Artifacts
