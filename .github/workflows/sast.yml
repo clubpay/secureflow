@@ -322,6 +322,8 @@ jobs:
         
     # Step 9: Upload the Semgrep Report as an Artifact
     - name: Upload Semgrep Report to Artifacts
+      # kept even when an upload fails: that's when the report is needed
+      if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-report
