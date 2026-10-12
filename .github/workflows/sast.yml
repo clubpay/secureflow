@@ -219,7 +219,7 @@ jobs:
     - name: Filter Semgrep Report
       shell: python3 {0}
       run: |
-        import json, re
+        import json, os, re
         SECRET_CWE = re.compile(r"CWE-(798|259|321)\b", re.I)   # hard-coded credentials, password, key
         SECRET_ID = re.compile(r"(hardcod|(^|[._-])secrets?([._-]|$)|node_password|node_username|node_api_key|api[-_]?key)", re.I)
         ADDITIONAL = "secureflow-rules."
@@ -231,7 +231,8 @@ jobs:
             nums = {re.sub(r"\D", "", str(c).split(":")[0]) for c in raw}
             return {"CWE-" + FAMILY.get(n, n) for n in nums if n}
         drop_rules, drop_hits, by_line = {}, set(), {}
-        results = json.load(open("semgrep-metadata.json")).get("results", [])
+        metadata = json.load(open("semgrep-metadata.json"))
+        results = metadata.get("results", [])
         for r in results:
             ex = r["extra"]; m = ex.get("metadata") or {}
             cat = str(m.get("category") or "security").lower()
@@ -258,6 +259,17 @@ jobs:
               % (len(report["vulnerabilities"]), len(vulns), len(drop_hits)))
         for rule, why in sorted(drop_rules.items()):
             print("  %-22s %s" % (why, rule))
+        # Rule/file errors (timeouts, parse errors) never fail the scan, but a rule
+        # that did not run on a file drops that file's findings from the report, and
+        # the import then closes them in DefectDojo (close_old_findings): surface them.
+        errors = metadata.get("errors", [])
+        if errors:
+            kind = lambda e: e["type"][0] if isinstance(e.get("type"), list) and e["type"] else str(e.get("type") or e.get("level") or "error")
+            lines = ["| %s | %s | %s |" % (kind(e), e.get("rule_id") or "-", e.get("path") or "-") for e in errors]
+            print("::warning title=Semgrep scan errors::%d rule/file error(s): findings on these files may be missing from this report and closed in DefectDojo; see the job summary" % len(errors))
+            print("\n".join(lines))
+            with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+                summary.write("### Semgrep scan errors (%d)\n\nThe scan passed, but these rules did not fully run on these files, so their findings may be missing and get closed in DefectDojo.\n\n| Error | Rule | File |\n|---|---|---|\n%s\n" % (len(errors), "\n".join(lines[:200])))
 
     # Only the default branch's state goes to DefectDojo: an import closes every
     # finding of the product that is absent from it (close_old_findings, product
@@ -269,8 +281,11 @@ jobs:
       env:
         FORCE: ${{ inputs.FORCE_DEFECTDOJO_UPLOAD }}
         DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        DD_TOKEN: ${{ secrets.DEFECTDOJO_TOKEN }}
       run: |
         if [ "$FORCE" = "true" ] || { [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ]; }; then
+          # An empty token only shows up later as an HTTP 401 from the upload
+          if [ -z "$DD_TOKEN" ]; then echo "::error::DEFECTDOJO_TOKEN is empty: pass it under secrets: in the calling workflow"; exit 1; fi
           echo "upload=true" >> "$GITHUB_OUTPUT"
         else
           echo "upload=false" >> "$GITHUB_OUTPUT"
@@ -303,10 +318,12 @@ jobs:
       run: |
         TODAY=$(date +%Y-%m-%d)
         product_name="${DD_PRODUCT_NAME:-$(echo "${GITHUB_REPOSITORY}" | cut -d'/' -f2)}"
-        curl --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        curl --fail-with-body --cert ${{ steps.auth.outputs.certificate-file }} --key ${{ steps.auth.outputs.key-file }} -X "POST" "https://defectdojo-hz.teleport.qlub.cloud/api/v2/import-scan/" -H "accept: application/json" -H "Authorization: Token ${{ secrets.DEFECTDOJO_TOKEN }}" -H "Content-Type: multipart/form-data" -F file=@semgrep-report.json -F "product_type_name=Clubpay" -F "active=true" -F "verified=true" -F "close_old_findings=true" -F "engagement_name=${GITHUB_RUN_ID}(SAST)" -F "build_id=${GITHUB_RUN_ID}" -F "minimum_severity=Info" -F "close_old_findings_product_scope=true" -F "scan_date=$TODAY" -F "engagement_end_date=$TODAY" -F "commit_hash=${GITHUB_SHA}" -F "product_name=${product_name}" -F "auto_create_context=true" -F "scan_type=GitLab SAST Report" -F "branch_tag=${GITHUB_REF_NAME}" -F "source_code_management_uri=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
         
     # Step 9: Upload the Semgrep Report as an Artifact
     - name: Upload Semgrep Report to Artifacts
+      # kept even when an upload fails: that's when the report is needed
+      if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: semgrep-report
