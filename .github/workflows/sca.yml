@@ -63,7 +63,7 @@ jobs:
     - name: Generate SBOM
       run: |
         syft version
-        syft . -v -o cyclonedx-json@1.6=sbom.json \
+        syft . -v -o cyclonedx-json=sbom.json \
           --exclude './**/test/**' --exclude './**/tests/**' --exclude './**/__tests__/**' \
           --exclude './**/__mocks__/**' --exclude './**/mocks/**' --exclude './**/mock/**' \
           --exclude './**/fixtures/**' --exclude './**/testdata/**' --exclude './**/e2e/**' \
