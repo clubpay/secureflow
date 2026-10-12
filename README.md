@@ -9,7 +9,9 @@ This repository contains **reusable GitHub workflows** for automated security sc
 
 These workflows are designed to streamline security checks in your CI/CD pipelines. Remarkably, they complete scans in under a minute, providing swift and efficient protection for your codebase.
 
-<img width="1536" height="1024" alt="SecureFlow" src="https://github.com/user-attachments/assets/51cb0363-7dcc-4228-a5bb-cc3d791fe821" />
+![SecureFlow architecture](docs/architecture.png)
+
+> Interactive version (zoom, themes, source links): download [`docs/architecture.html`](docs/architecture.html) and open it in a browser.
 
 ## Overview of Scanning Types
 
